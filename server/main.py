@@ -428,6 +428,70 @@ async def chat(message: ChatMessage):
         "security_note": "Response encrypted with AES-256-CBC"
     }
 
+# QR Create endpoint for qr.html (returns data URL)
+@app.post("/qr/create")
+async def create_qr_code():
+    """Create QR code for current session - returns base64 data URL"""
+    try:
+        # For now, use a demo email. In production, get from JWT token
+        user_email = "demo@example.com"
+        
+        # Generate encrypted token
+        encrypted_token = generate_qr_token(user_email)
+        if not encrypted_token:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to generate QR token"
+            )
+        
+        # Store token in MongoDB or in-memory
+        if mongodb_connected:
+            qr_tokens_collection = get_qr_tokens_collection()
+            token_doc = {
+                "token": encrypted_token,
+                "user_email": user_email,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "used": False
+            }
+            await qr_tokens_collection.insert_one(token_doc)
+        else:
+            # Store in memory
+            in_memory_qr_tokens[encrypted_token] = {
+                "user_email": user_email,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "used": False
+            }
+        
+        # Generate QR code with encrypted token
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(encrypted_token)
+        qr.make(fit=True)
+        
+        # Create image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64 data URL
+        img_buffer = io.BytesIO()
+        img.save(img_buffer, format='PNG')
+        img_buffer.seek(0)
+        img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+        data_url = f"data:image/png;base64,{img_base64}"
+        
+        return {
+            "token": encrypted_token,
+            "data_url": data_url,
+            "expires_at": (datetime.utcnow() + timedelta(minutes=1)).isoformat()
+        }
+        
+    except Exception as e:
+        print(f"QR creation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create QR code"
+        )
+
 # Secure QR Code endpoint with encrypted tokens
 @app.get("/generate_qr")
 async def generate_qrcode(user_email: str = Query(..., description="User email for QR code")):
