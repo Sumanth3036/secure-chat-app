@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Chat Session</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+            font-size: 14px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 25px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+        .info ul {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin: 5px 0;
+        }
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            color: #c62828;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: bold;
+            display: none;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Join Chat Session</h1>
+        <p class="subtitle">Paste the session URL or ID from QR code</p>
+        
+        <div class="form-group">
+            <label for="sessionInput">Session URL or ID:</label>
+            <input 
+                type="text" 
+                id="sessionInput" 
+                placeholder="Paste: /static/chat.html?session_id=... or just the session_id"
+                autofocus
+            >
+        </div>
+        
+        <button onclick="joinSession()">🎯 Join Chat Now</button>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Joining session...</p>
+        </div>
+        
+        <div id="errorMsg" class="error"></div>
+        
+        <div class="info">
+            <strong>💡 How to use:</strong>
+            <ul>
+                <li>Scan QR code to get the session URL</li>
+                <li>Paste it in the box above (any format works)</li>
+                <li>Click "Join Chat Now"</li>
+                <li>You'll be redirected to the chat!</li>
+            </ul>
+            <strong>Supported formats:</strong>
+            <ul>
+                <li>Full URL: https://...chat.html?session_id=abc123</li>
+                <li>Relative: /static/chat.html?session_id=abc123</li>
+                <li>With params: session_id=abc123</li>
+                <li>Just ID: abc123</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Auto-extract and join if URL has session_id parameter
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
+            if (sessionId) {
+                document.getElementById('sessionInput').value = sessionId;
+                // Auto-join after 1 second
+                setTimeout(() => joinSession(), 1000);
+            }
+        });
+
+        async function joinSession() {
+            const input = document.getElementById('sessionInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const loading = document.getElementById('loading');
+            
+            // Hide previous errors
+            errorMsg.style.display = 'none';
+            loading.style.display = 'block';
+            
+            if (!input) {
+                showError('Please paste a session URL or ID');
+                loading.style.display = 'none';
+                return;
+            }
+            
+            // Extract session_id from various formats
+            let sessionId = extractSessionId(input);
+            
+            if (!sessionId) {
+                showError('Could not find a valid session ID. Please check the format.');
+                loading.style.display = 'none';
+                return;
+            }
+            
+            // Validate session exists
+            try {
+                const response = await fetch(`/qr_from_session/${sessionId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Session not found or expired');
+                }
+                
+                // Session exists, redirect to chat
+                window.location.href = `/static/chat.html?session_id=${sessionId}`;
+                
+            } catch (error) {
+                showError(`Failed to join session: ${error.message}`);
+                loading.style.display = 'none';
+            }
+        }
+        
+        function extractSessionId(input) {
+            // Try different patterns to extract session_id
+            
+            // Pattern 1: Full URL
+            try {
+                const url = new URL(input);
+                const params = new URLSearchParams(url.search);
+                const id = params.get('session_id');
+                if (id) return id;
+            } catch (e) {
+                // Not a full URL, continue
+            }
+            
+            // Pattern 2: Relative URL with query params
+            const relativeMatch = input.match(/\?session_id=([a-f0-9]+)/i);
+            if (relativeMatch) return relativeMatch[1];
+            
+            // Pattern 3: Just session_id=value
+            const paramMatch = input.match(/session_id=([a-f0-9]+)/i);
+            if (paramMatch) return paramMatch[1];
+            
+            // Pattern 4: Just the hex ID (32 chars)
+            const hexMatch = input.match(/^([a-f0-9]{32})$/i);
+            if (hexMatch) return hexMatch[1];
+            
+            // Pattern 5: Extract any 32-char hex string
+            const anyHexMatch = input.match(/([a-f0-9]{32})/i);
+            if (anyHexMatch) return anyHexMatch[1];
+            
+            return null;
+        }
+        
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.style.display = 'block';
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('sessionInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinSession();
+            }
+        });
+    </script>
+</body>
+</html>
