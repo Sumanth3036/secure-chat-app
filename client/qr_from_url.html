@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate QR from URL</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .qr-container {
+            margin-top: 30px;
+            text-align: center;
+            display: none;
+        }
+        .qr-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            display: inline-block;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        #qrImage {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1565c0;
+        }
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            color: #c62828;
+            display: none;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Generate QR from Chat URL</h1>
+        <p class="subtitle">Paste your chat URL and get the QR code instantly</p>
+        
+        <div class="form-group">
+            <label for="chatUrl">Chat URL:</label>
+            <input 
+                type="text" 
+                id="chatUrl" 
+                placeholder="Paste URL like: https://secure-chat-app-pp81.onrender.com/static/chat.html?session_id=..."
+            >
+        </div>
+        
+        <button onclick="generateQR()">🎯 Generate QR Code</button>
+        
+        <div id="errorMsg" class="error"></div>
+        
+        <div id="qrContainer" class="qr-container">
+            <div class="success">
+                ✅ QR Code Generated Successfully!
+            </div>
+            <div class="qr-box">
+                <img id="qrImage" alt="QR Code">
+            </div>
+            <p style="margin-top: 15px; color: #666;">
+                <strong>Session ID:</strong> <span id="sessionId"></span>
+            </p>
+        </div>
+        
+        <div class="info">
+            <strong>💡 How to use:</strong><br>
+            1. Copy the full chat URL from your browser<br>
+            2. Paste it in the box above<br>
+            3. Click "Generate QR Code"<br>
+            4. Scan the QR code to join the chat!
+        </div>
+    </div>
+
+    <script>
+        async function generateQR() {
+            const urlInput = document.getElementById('chatUrl').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const qrContainer = document.getElementById('qrContainer');
+            
+            // Hide previous results
+            errorMsg.style.display = 'none';
+            qrContainer.style.display = 'none';
+            
+            if (!urlInput) {
+                showError('Please paste a chat URL');
+                return;
+            }
+            
+            // Extract session_id from URL
+            let sessionId = null;
+            
+            try {
+                // Try to parse as URL
+                const url = new URL(urlInput);
+                const params = new URLSearchParams(url.search);
+                sessionId = params.get('session_id');
+            } catch (e) {
+                // If not a full URL, try to extract session_id directly
+                const match = urlInput.match(/session_id=([a-f0-9]+)/i);
+                if (match) {
+                    sessionId = match[1];
+                }
+            }
+            
+            if (!sessionId) {
+                showError('Could not find session_id in the URL. Make sure it contains "?session_id=..."');
+                return;
+            }
+            
+            // Generate QR code
+            try {
+                const response = await fetch(`/qr_from_session/${sessionId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate QR code. Session might not exist.');
+                }
+                
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Display QR code
+                document.getElementById('qrImage').src = imageUrl;
+                document.getElementById('sessionId').textContent = sessionId;
+                qrContainer.style.display = 'block';
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.style.display = 'block';
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('chatUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+    </script>
+</body>
+</html>
