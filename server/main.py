@@ -244,25 +244,29 @@ def verify_token(token: str):
 # Startup and shutdown events
 @app.on_event("startup")
 async def startup_event():
-    global mongodb_connected
+    global mongodb_connected, mongodb_client
     try:
         await connect_to_mongo()
         
-        # Create indexes for collections
-        user_collection = get_user_collection()
-        qr_tokens_collection = get_qr_tokens_collection()
-        
-        # Ensure unique email index for users
-        await user_collection.create_index("email", unique=True)
-        
-        # Ensure unique token index for QR tokens and TTL index for expiry
-        await qr_tokens_collection.create_index("token", unique=True)
-        await qr_tokens_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index
-        
-        mongodb_connected = True
-        print("✅ MongoDB connected successfully")
+        # Only create indexes if MongoDB is actually connected
+        if mongodb_client is not None:
+            user_collection = get_user_collection()
+            qr_tokens_collection = get_qr_tokens_collection()
+            
+            # Ensure unique email index for users
+            await user_collection.create_index("email", unique=True)
+            
+            # Ensure unique token index for QR tokens and TTL index for expiry
+            await qr_tokens_collection.create_index("token", unique=True)
+            await qr_tokens_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index
+            
+            mongodb_connected = True
+            print("✅ MongoDB connected successfully")
+        else:
+            raise Exception("MongoDB client is None")
     except Exception as e:
         mongodb_connected = False
+        mongodb_client = None  # Ensure client is None
         print(f"⚠️  MongoDB connection failed: {str(e)[:100]}")
         print("⚠️  Using in-memory storage (data will not persist)")
     
@@ -351,6 +355,8 @@ async def signup(user: UserSignup):
             
             # Insert user into MongoDB
             await user_collection.insert_one(user_doc)
+        except HTTPException:
+            raise  # Re-raise HTTPException as-is
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -434,17 +440,25 @@ async def generate_qrcode(user_email: str = Query(..., description="User email f
                 detail="Failed to generate QR token"
             )
         
-        # Store token in MongoDB with expiry
-        qr_tokens_collection = get_qr_tokens_collection()
-        token_doc = {
-            "token": encrypted_token,
-            "user_email": user_email,
-            "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(minutes=1),
-            "used": False
-        }
-        
-        await qr_tokens_collection.insert_one(token_doc)
+        # Store token in MongoDB or in-memory
+        if mongodb_connected:
+            qr_tokens_collection = get_qr_tokens_collection()
+            token_doc = {
+                "token": encrypted_token,
+                "user_email": user_email,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "used": False
+            }
+            await qr_tokens_collection.insert_one(token_doc)
+        else:
+            # Store in memory
+            in_memory_qr_tokens[encrypted_token] = {
+                "user_email": user_email,
+                "created_at": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "used": False
+            }
         
         # Generate QR code with encrypted token (not raw email)
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -481,24 +495,37 @@ async def validate_qr_token_endpoint(qr_token: QRToken):
                 detail=validation_result["error"]
             )
         
-        # Check if token exists in MongoDB and hasn't been used
-        qr_tokens_collection = get_qr_tokens_collection()
-        token_doc = await qr_tokens_collection.find_one({
-            "token": qr_token.token,
-            "used": False
-        })
-        
-        if not token_doc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Token not found or already used"
+        # Check if token exists and hasn't been used
+        if mongodb_connected:
+            qr_tokens_collection = get_qr_tokens_collection()
+            token_doc = await qr_tokens_collection.find_one({
+                "token": qr_token.token,
+                "used": False
+            })
+            
+            if not token_doc:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Token not found or already used"
+                )
+            
+            # Mark token as used
+            await qr_tokens_collection.update_one(
+                {"token": qr_token.token},
+                {"$set": {"used": True, "used_at": datetime.utcnow()}}
             )
-        
-        # Mark token as used
-        await qr_tokens_collection.update_one(
-            {"token": qr_token.token},
-            {"$set": {"used": True, "used_at": datetime.utcnow()}}
-        )
+        else:
+            # Check in-memory storage
+            token_doc = in_memory_qr_tokens.get(qr_token.token)
+            if not token_doc or token_doc.get("used"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Token not found or already used"
+                )
+            
+            # Mark as used
+            in_memory_qr_tokens[qr_token.token]["used"] = True
+            in_memory_qr_tokens[qr_token.token]["used_at"] = datetime.utcnow()
         
         # Generate JWT token for the user
         user_email = validation_result["user_email"]
