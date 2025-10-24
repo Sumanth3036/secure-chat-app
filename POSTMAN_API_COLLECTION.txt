@@ -1,0 +1,835 @@
+===============================================================================
+                    CYBER CHAT PROJECT - POSTMAN API COLLECTION
+===============================================================================
+
+Base URL: http://localhost:8000
+
+===============================================================================
+1. AUTHENTICATION APIs
+===============================================================================
+
+-------------------------------------------
+1.1 User Signup
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/signup
+Headers:
+    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "email": "test@example.com",
+  "password": "Test@1234"
+}
+
+Expected Response (200 OK):
+{
+  "message": "User registered successfully with enhanced security"
+}
+
+Notes:
+- Password must be at least 8 characters
+- Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+
+-------------------------------------------
+1.2 User Login
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/login
+Headers:
+    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "email": "test@example.com",
+  "password": "Test@1234"
+}
+
+Expected Response (200 OK):
+{
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "security_info": "Password verified with bcrypt, JWT token generated"
+}
+
+Notes:
+- Save the "token" value for authenticated requests
+- Token expires in 1 hour (configurable)
+
+===============================================================================
+2. URL THREAT DETECTION API (NEW FEATURE)
+===============================================================================
+
+-------------------------------------------
+2.1 Validate URL/Content (ML-Powered)
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/api/validate
+Headers:
+    Content-Type: application/json
+
+Body (raw JSON) - Test Case 1: Safe URL
+{
+  "content": "https://www.google.com",
+  "content_type": "url"
+}
+
+Expected Response (200 OK):
+{
+  "is_safe": true,
+  "status": "safe",
+  "warnings": [],
+  "details": {
+    "ml_detection": {
+      "enabled": true,
+      "phishing_probability": 0.12,
+      "risk_level": "low",
+      "model_type": "CatBoost Classifier"
+    },
+    "rule_based_detection": {
+      "warnings_count": 0,
+      "enabled": true
+    },
+    "content_type": "url",
+    "content_length": 23,
+    "urls_found": 1,
+    "analysis_timestamp": "2025-10-15T07:21:00Z"
+  }
+}
+
+-------------------------------------------
+Body (raw JSON) - Test Case 2: Suspicious URL
+{
+  "content": "Click here: http://bit.ly/free-offer",
+  "content_type": "text"
+}
+
+Expected Response (200 OK):
+{
+  "is_safe": false,
+  "status": "warning",
+  "warnings": [
+    {
+      "type": "ml_phishing_detection",
+      "message": "ML model detected suspicious content (confidence: 58.30%)",
+      "severity": "high",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "catboost_ml_model"
+    }
+  ],
+  "details": {
+    "ml_detection": {
+      "enabled": true,
+      "phishing_probability": 0.583,
+      "risk_level": "medium",
+      "model_type": "CatBoost Classifier"
+    }
+  }
+}
+
+-------------------------------------------
+Body (raw JSON) - Test Case 3: Dangerous URL
+{
+  "content": "Verify your account: http://paypal-secure-verify.tk/login",
+  "content_type": "url"
+}
+
+Expected Response (200 OK):
+{
+  "is_safe": false,
+  "status": "dangerous",
+  "warnings": [
+    {
+      "type": "ml_phishing_detection",
+      "message": "ML model detected potential phishing (confidence: 87.60%)",
+      "severity": "critical",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "catboost_ml_model"
+    },
+    {
+      "type": "phishing_url",
+      "message": "Potential phishing URL detected: http://paypal-secure-verify.tk/login",
+      "severity": "high",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "rule_based_detection"
+    }
+  ],
+  "details": {
+    "ml_detection": {
+      "enabled": true,
+      "phishing_probability": 0.876,
+      "risk_level": "high",
+      "model_type": "CatBoost Classifier"
+    },
+    "rule_based_detection": {
+      "warnings_count": 1,
+      "enabled": true
+    }
+  }
+}
+
+-------------------------------------------
+Body (raw JSON) - Test Case 4: XSS Attack
+{
+  "content": "<script>alert('XSS')</script>",
+  "content_type": "text"
+}
+
+Expected Response (200 OK):
+{
+  "is_safe": false,
+  "status": "dangerous",
+  "warnings": [
+    {
+      "type": "malicious_content",
+      "message": "Malicious content detected: <script[^>]*>",
+      "severity": "critical",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "rule_based_detection"
+    }
+  ]
+}
+
+-------------------------------------------
+Body (raw JSON) - Test Case 5: Spam Content
+{
+  "content": "Make money fast! Free viagra and casino bonuses!",
+  "content_type": "text"
+}
+
+Expected Response (200 OK):
+{
+  "is_safe": false,
+  "status": "warning",
+  "warnings": [
+    {
+      "type": "spam",
+      "message": "Spam content detected: \\b(viagra|cialis|levitra)\\b",
+      "severity": "medium",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "rule_based_detection"
+    },
+    {
+      "type": "spam",
+      "message": "Spam content detected: \\b(casino|poker|bet|gambling)\\b",
+      "severity": "medium",
+      "timestamp": "2025-10-15T07:21:00Z",
+      "source": "rule_based_detection"
+    }
+  ]
+}
+
+Notes:
+- content_type can be: "text", "url", or "qr"
+- ML model analyzes URLs and text for phishing patterns
+- Rule-based detection catches XSS, injection, and spam
+- Response includes both ML and rule-based warnings
+
+===============================================================================
+3. SECURITY STATUS API
+===============================================================================
+
+-------------------------------------------
+3.1 Get Security Status
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/security/status
+Headers:
+    (No special headers required)
+
+Expected Response (200 OK):
+{
+  "jwt_enabled": true,
+  "bcrypt_enabled": true,
+  "aes_encryption": true,
+  "password_rounds": 12,
+  "encryption_algorithm": "AES-256-CBC",
+  "qr_token_security": {
+    "encryption": "AES-256-CBC",
+    "expiry": "1 minute",
+    "storage": "MongoDB with TTL",
+    "one_time_use": true,
+    "no_raw_data": true
+  },
+  "security_monitoring": {
+    "enabled": true,
+    "phishing_detection": true,
+    "malicious_content_detection": true,
+    "spam_detection": true,
+    "rate_limiting": true,
+    "max_warnings_before_ban": 3,
+    "max_messages_per_minute": 30
+  },
+  "ml_phishing_detection": {
+    "enabled": true,
+    "model_type": "CatBoost Classifier",
+    "model_accuracy": "96.79%",
+    "features_count": 30,
+    "fallback_mode": false,
+    "model_path": "path/to/catboost_phishing.pkl"
+  },
+  "security_level": "Enhanced with ML + Rule-Based Detection"
+}
+
+Notes:
+- Shows all security features enabled in the system
+- Check ml_phishing_detection.enabled to verify ML model is loaded
+- fallback_mode: false means ML model is working properly
+
+===============================================================================
+4. CHAT APIs
+===============================================================================
+
+-------------------------------------------
+4.1 Send Chat Message (HTTP Fallback)
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/chat
+Headers:
+    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "user_message": "Hello, this is a test message"
+}
+
+Expected Response (200 OK):
+{
+  "reply": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "security_note": "Response encrypted with AES-256-CBC"
+}
+
+Notes:
+- Response is AES-256-CBC encrypted
+- For real-time chat, use WebSocket connection (see WebSocket section)
+
+===============================================================================
+5. SESSION MANAGEMENT APIs
+===============================================================================
+
+-------------------------------------------
+5.1 Create Chat Session
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/create_session
+Headers:
+    Content-Type: application/json
+
+Body: (empty)
+
+Expected Response (200 OK):
+{
+  "session_id": "a1b2c3d4e5f6g7h8i9j0",
+  "join_url": "/static/chat.html?session_id=a1b2c3d4e5f6g7h8i9j0"
+}
+
+Notes:
+- Creates a new private chat session
+- Use session_id to join the chat room
+- Share join_url with other users to invite them
+
+===============================================================================
+6. QR CODE APIs
+===============================================================================
+
+-------------------------------------------
+6.1 Generate QR Code for User
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/generate_qr?user_email=test@example.com
+Headers:
+    (No special headers required)
+
+Expected Response (200 OK):
+Content-Type: image/png
+[Binary PNG Image Data]
+
+Notes:
+- Returns a QR code image
+- QR code contains encrypted token (AES-256)
+- Token expires in 1 minute
+- One-time use only
+
+-------------------------------------------
+6.2 Generate QR Code for Session
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/qr_from_session/{session_id}
+Headers:
+    (No special headers required)
+
+Example:
+URL: http://localhost:8000/qr_from_session/a1b2c3d4e5f6g7h8i9j0
+
+Expected Response (200 OK):
+Content-Type: image/png
+[Binary PNG Image Data]
+
+Notes:
+- Generates QR code for joining a specific chat session
+- Others can scan to join the session
+
+-------------------------------------------
+6.3 Validate QR Token
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/validate_qr
+Headers:
+    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "token": "encrypted_token_from_qr_code"
+}
+
+Expected Response (200 OK):
+{
+  "message": "QR token validated successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user_email": "test@example.com",
+  "security_info": "QR token validated, JWT generated, token marked as used"
+}
+
+Expected Response (400 Bad Request) - If token expired:
+{
+  "detail": "Token expired"
+}
+
+Expected Response (400 Bad Request) - If token already used:
+{
+  "detail": "Token not found or already used"
+}
+
+Notes:
+- QR tokens expire in 1 minute
+- Tokens are one-time use only
+- Returns JWT token for authentication
+
+===============================================================================
+7. SECURITY MONITORING APIs (Authenticated)
+===============================================================================
+
+-------------------------------------------
+7.1 Get Security Report for Session
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/security/report/{session_id}?token={jwt_token}
+Headers:
+    (No special headers required)
+
+Example:
+URL: http://localhost:8000/security/report/a1b2c3d4e5f6g7h8i9j0?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Expected Response (200 OK):
+{
+  "user_email": "test@example.com",
+  "session_id": "a1b2c3d4e5f6g7h8i9j0",
+  "warning_count": 2,
+  "warnings": [
+    {
+      "type": "phishing_url",
+      "message": "Potential phishing URL detected: http://suspicious-site.tk",
+      "severity": "high",
+      "timestamp": "2025-10-15T07:21:00Z"
+    }
+  ],
+  "should_terminate": false,
+  "max_warnings": 3
+}
+
+Expected Response (401 Unauthorized) - If invalid token:
+{
+  "detail": "Invalid token"
+}
+
+Notes:
+- Requires valid JWT token
+- Shows all security warnings for a user in a session
+- should_terminate: true if user exceeded warning limit
+
+-------------------------------------------
+7.2 Clear Warnings for Session
+-------------------------------------------
+Method: POST
+URL: http://localhost:8000/security/clear_warnings/{session_id}?token={jwt_token}
+Headers:
+    Content-Type: application/json
+
+Example:
+URL: http://localhost:8000/security/clear_warnings/a1b2c3d4e5f6g7h8i9j0?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Body: (empty)
+
+Expected Response (200 OK):
+{
+  "message": "Warnings cleared successfully"
+}
+
+Expected Response (401 Unauthorized) - If invalid token:
+{
+  "detail": "Invalid token"
+}
+
+Notes:
+- Requires valid JWT token
+- Clears all warnings for the user in the session
+- Admin/moderator function
+
+===============================================================================
+8. WEBSOCKET CONNECTION (Real-Time Chat)
+===============================================================================
+
+-------------------------------------------
+8.1 WebSocket Connection
+-------------------------------------------
+Protocol: WebSocket (ws://)
+URL: ws://localhost:8000/ws/{session_id}?token={jwt_token}
+
+Example:
+ws://localhost:8000/ws/a1b2c3d4e5f6g7h8i9j0?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Connection Flow:
+1. Connect to WebSocket URL with session_id and JWT token
+2. Server validates token and session
+3. Connection established
+4. Receive welcome message
+
+Welcome Message (Received):
+{
+  "user": "System",
+  "message": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "security_info": "Message encrypted with AES-256-CBC"
+}
+
+-------------------------------------------
+8.2 Send Message via WebSocket
+-------------------------------------------
+Send (JSON):
+{
+  "user": "test@example.com",
+  "message": "Hello everyone!",
+  "type": "text"
+}
+
+Receive (JSON) - Normal Message:
+{
+  "user": "test@example.com",
+  "message": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "timestamp": "2025-10-15T07:21:00.123456",
+  "security_info": "Message encrypted with AES-256-CBC"
+}
+
+Receive (JSON) - Message with URL Threat Detection:
+{
+  "user": "test@example.com",
+  "message": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "timestamp": "2025-10-15T07:21:00.123456",
+  "security_info": "Message encrypted with AES-256-CBC",
+  "ml_threat": {
+    "level": "dangerous",
+    "color": "#dc3545",
+    "emoji": "🔴",
+    "probability": 0.876,
+    "confidence": "87.6%"
+  }
+}
+
+Notes:
+- ml_threat field is added when URLs are detected
+- level can be: "safe", "warning", or "dangerous"
+- Client displays color-coded warning based on ml_threat data
+
+-------------------------------------------
+8.3 Security Warning via WebSocket
+-------------------------------------------
+Receive (JSON) - Security Warning:
+{
+  "user": "Security System",
+  "message": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "security_info": "Warning 1/3",
+  "warning": true
+}
+
+Receive (JSON) - Session Terminated:
+{
+  "user": "Security System",
+  "message": "U2FsdGVkX1+vupppZksvRf5pq5g5XjFRIipRkwB0K1Y96Qsv2Lm...",
+  "encrypted": true,
+  "security_info": "Session terminated due to multiple security warnings",
+  "terminated": true
+}
+
+Notes:
+- Users receive warnings for suspicious content
+- After 3 warnings, session is terminated
+- Connection is closed with code 1008 (Policy Violation)
+
+-------------------------------------------
+8.4 Send File via WebSocket
+-------------------------------------------
+Send (JSON):
+{
+  "user": "test@example.com",
+  "type": "file",
+  "fileName": "document.pdf",
+  "fileType": "application/pdf",
+  "fileSize": 102400,
+  "fileData": "data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDEvS2lkc1szIDAgUl0+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL1Jlc291cmNlczw8L0ZvbnQ8PC9GMSA0IDAgUj4+Pj4vTWVkaWFCb3hbMCAwIDYxMiA3OTJdL0NvbnRlbnRzIDUgMCBSPj4KZW5kb2JqCjQgMCBvYmoKPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvQmFzZUZvbnQvVGltZXMtUm9tYW4+PgplbmRvYmoKNSAwIG9iago8PC9MZW5ndGggNDQ+PgpzdHJlYW0KQlQKL0YxIDEyIFRmCjEwMCA3MDAgVGQKKEhlbGxvIFdvcmxkKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDIzNyAwMDAwMCBuIAowMDAwMDAwMzE3IDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNDA5CiUlRU9GCg==",
+  "caption": "Check out this document"
+}
+
+Receive (JSON) - File Message:
+{
+  "user": "test@example.com",
+  "type": "file",
+  "fileName": "document.pdf",
+  "fileType": "application/pdf",
+  "fileSize": 102400,
+  "fileData": "data:application/pdf;base64,..."
+}
+
+Notes:
+- Files are sent as base64 encoded data
+- Maximum file size: 10 MB
+- Supported file types: all (images, documents, videos, etc.)
+
+===============================================================================
+9. STATIC PAGES
+===============================================================================
+
+-------------------------------------------
+9.1 Home Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/index.html
+
+-------------------------------------------
+9.2 Login Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/login.html
+
+-------------------------------------------
+9.3 Signup Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/signup.html
+
+-------------------------------------------
+9.4 Chat Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/chat.html?session_id={session_id}
+
+Example:
+http://localhost:8000/static/chat.html?session_id=a1b2c3d4e5f6g7h8i9j0
+
+-------------------------------------------
+9.5 QR Validation Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/qr_validate.html
+
+-------------------------------------------
+9.6 URL Validation Page (NEW)
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/validate.html
+
+-------------------------------------------
+9.7 Alert Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/alert.html
+
+-------------------------------------------
+9.8 QR Code Page
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/static/qr.html
+
+===============================================================================
+10. HEALTH CHECK
+===============================================================================
+
+-------------------------------------------
+10.1 Root Endpoint
+-------------------------------------------
+Method: GET
+URL: http://localhost:8000/
+Headers:
+    (No special headers required)
+
+Expected Response (200 OK):
+{
+  "message": "Secure Chat Server Running",
+  "security": "AES-256 + bcrypt + JWT enabled"
+}
+
+===============================================================================
+11. ERROR RESPONSES
+===============================================================================
+
+-------------------------------------------
+400 Bad Request
+-------------------------------------------
+{
+  "detail": "Error message describing what went wrong"
+}
+
+Examples:
+- "Password must be at least 8 characters long"
+- "Password must contain at least one special character"
+- "User already exists"
+- "Token expired"
+- "Invalid token"
+
+-------------------------------------------
+401 Unauthorized
+-------------------------------------------
+{
+  "detail": "Invalid credentials"
+}
+
+or
+
+{
+  "detail": "Invalid token"
+}
+
+-------------------------------------------
+404 Not Found
+-------------------------------------------
+{
+  "detail": "Session not found"
+}
+
+-------------------------------------------
+500 Internal Server Error
+-------------------------------------------
+{
+  "detail": "Database error: connection failed"
+}
+
+or
+
+{
+  "detail": "Validation failed: ML model error"
+}
+
+===============================================================================
+12. TESTING WORKFLOW
+===============================================================================
+
+Complete Testing Flow:
+1. Test Security Status
+   GET /security/status
+
+2. Create User Account
+   POST /signup
+   Body: {"email": "test@example.com", "password": "Test@1234"}
+
+3. Login
+   POST /login
+   Body: {"email": "test@example.com", "password": "Test@1234"}
+   Save JWT token from response
+
+4. Test URL Validation (Safe)
+   POST /api/validate
+   Body: {"content": "https://www.google.com", "content_type": "url"}
+
+5. Test URL Validation (Dangerous)
+   POST /api/validate
+   Body: {"content": "http://paypal-verify.tk/login", "content_type": "url"}
+
+6. Create Chat Session
+   POST /create_session
+   Save session_id from response
+
+7. Generate QR Code for Session
+   GET /qr_from_session/{session_id}
+
+8. Connect to WebSocket
+   ws://localhost:8000/ws/{session_id}?token={jwt_token}
+
+9. Send Message with URL
+   Send: {"user": "test@example.com", "message": "Check this: http://bit.ly/test"}
+   Receive: Message with ml_threat field showing threat level
+
+10. Get Security Report
+    GET /security/report/{session_id}?token={jwt_token}
+
+===============================================================================
+13. ENVIRONMENT VARIABLES (Optional Configuration)
+===============================================================================
+
+You can set these in a .env file:
+
+SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_HOURS=1
+AES_SECRET_KEY=your-32-character-aes-secret-key-here
+AES_IV=your-16-character-iv-here
+MONGODB_URL=mongodb://localhost:27017
+DATABASE_NAME=chat_app
+COLLECTION_NAME=users
+ENABLE_ML_PHISHING=true
+ML_PHISHING_THRESHOLD=0.75
+
+===============================================================================
+14. NOTES AND TIPS
+===============================================================================
+
+1. Authentication:
+   - Most endpoints don't require authentication
+   - Security report and clear warnings require JWT token
+   - WebSocket requires JWT token for connection
+
+2. URL Threat Detection:
+   - Automatically analyzes URLs in messages
+   - Returns color-coded threat levels (🟢🟡🔴)
+   - ML model accuracy: 96.79%
+   - Response time: < 10ms
+
+3. Encryption:
+   - All chat messages encrypted with AES-256-CBC
+   - Passwords hashed with bcrypt (12 rounds)
+   - JWT tokens for authentication
+   - QR tokens encrypted and expire in 1 minute
+
+4. Rate Limiting:
+   - Max 30 messages per minute per user
+   - Max 500 messages per hour per user
+   - 3 security warnings before session termination
+
+5. File Sharing:
+   - Max file size: 10 MB
+   - Files sent as base64 encoded data
+   - All file types supported
+
+6. Testing Tools:
+   - Use Postman for REST API testing
+   - Use Postman WebSocket feature for WebSocket testing
+   - Use browser for static pages
+   - Use Python test scripts: test_url_detection.py, test_complete_integration.py
+
+===============================================================================
+END OF API COLLECTION
+===============================================================================
+
+For more information, see:
+- URL_THREAT_DETECTION.md - Technical documentation
+- FEATURE_DEMO.md - Visual demo and examples
+- IMPLEMENTATION_SUMMARY.md - Implementation details
+- QUICK_REFERENCE.md - Quick reference guide
+
+Server Repository: c:\Users\suman\OneDrive\Documents\cyber\cyberproject
+Start Server: cd server && python main.py
+Test Server: python server/test_url_detection.py
+
+===============================================================================

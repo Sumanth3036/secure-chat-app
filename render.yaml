@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: secure-chat-app
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r server/requirements.txt
+    startCommand: cd server && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: AES_SECRET_KEY
+        generateValue: true
+      - key: AES_IV
+        generateValue: true
+      - key: MONGODB_URL
+        value: mongodb://localhost:27017
+      - key: DATABASE_NAME
+        value: chat_app
+      - key: COLLECTION_NAME
+        value: users
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_HOURS
+        value: 1

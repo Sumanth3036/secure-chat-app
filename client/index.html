@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Chat - Home</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: url("img/Master_Cybersecurity_Thumb-1024x657.jpg") no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: white;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 0;
+    }
+
+    /* Top bar */
+    .topbar {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1.5rem;
+      background: rgba(20, 20, 30, 0.9);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #4da6ff;
+      letter-spacing: 1px;
+    }
+
+    .profile-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .profile-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #4da6ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .logout-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #dc3545;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: #c82333;
+    }
+
+    /* Center container */
+    .container {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .btn {
+      width: 260px;
+      padding: 15px;
+      margin: 12px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: #4da6ff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1a75ff;
+    }
+
+    .btn-secondary {
+      background: #4da6ff;
+      color: white;
+      color: black;
+    }
+
+    .btn-secondary:hover {
+      background: #1a75ff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">PrivChat</div>
+    <div class="profile-section">
+      <button class="logout-btn" onclick="logout()">Logout</button>
+      <div class="profile-icon">U</div> <!-- Placeholder: user initial -->
+    </div>
+  </div>
+
+  <!-- Central buttons -->
+  <div class="container">
+    <button id="startBtn" class="btn btn-primary">Start Conversation</button>
+    <!-- <button id="validateBtn" class="btn btn-secondary" onclick="goToValidation()">🔒 Security Validation</button> -->
+  </div>
+
+  <script>
+    // Check authentication on page load
+    window.addEventListener('load', function() {
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        window.location.href = '/static/login.html';
+      }
+    });
+
+    // Logout function
+    function logout() {
+      localStorage.removeItem('authToken');
+      window.location.href = '/static/login.html';
+    }
+
+    // Go to validation page
+    function goToValidation() {
+      window.location.href = '/validate';
+    }
+
+    // Start conversation: create session, then redirect to chat with session_id
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        window.location.href = '/static/login.html';
+        return;
+      }
+
+      try {
+        const resp = await fetch('/create_session', { method: 'POST' });
+        if (!resp.ok) throw new Error('Failed to create session');
+        const data = await resp.json();
+        const sessionId = data.session_id;
+        window.location.href = `/static/chat.html?session_id=${sessionId}`;
+      } catch (e) {
+        alert('Failed to create QR code');
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>
