@@ -15,12 +15,13 @@ services:
         generateValue: true
       - key: AES_IV
         generateValue: true
-      - key: MONGODB_URL
-        value: mongodb://localhost:27017
-      - key: DATABASE_NAME
-        value: chat_app
-      - key: COLLECTION_NAME
-        value: users
+      # MongoDB not available on Render Free - using in-memory storage
+      # - key: MONGODB_URL
+      #   value: mongodb://localhost:27017
+      # - key: DATABASE_NAME
+      #   value: chat_app
+      # - key: COLLECTION_NAME
+      #   value: users
       - key: JWT_ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_HOURS
