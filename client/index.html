@@ -116,14 +116,12 @@
     }
 
     .btn-secondary {
-      background: #4da6ff;
+      background: #28a745;
       color: white;
-      color: black;
     }
 
     .btn-secondary:hover {
-      background: #1a75ff;
-      color: white;
+      background: #218838;
     }
   </style>
 </head>
@@ -140,7 +138,7 @@
   <!-- Central buttons -->
   <div class="container">
     <button id="startBtn" class="btn btn-primary">Start Conversation</button>
-    <!-- <button id="validateBtn" class="btn btn-secondary" onclick="goToValidation()">🔒 Security Validation</button> -->
+    <button id="joinBtn" class="btn btn-secondary" onclick="joinChat()">🔗 Join Chat</button>
   </div>
 
   <script>
@@ -161,6 +159,11 @@
     // Go to validation page
     function goToValidation() {
       window.location.href = '/validate';
+    }
+
+    // Join existing chat session
+    function joinChat() {
+      window.location.href = '/static/join_session.html';
     }
 
     // Start conversation: create session, then redirect to chat with session_id
