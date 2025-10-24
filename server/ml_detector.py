@@ -38,7 +38,9 @@ class CatBoostPhishingDetector:
         try:
             if os.path.isfile(self.model_path):
                 self.model = joblib.load(self.model_path)
+                self.fallback_mode = False  # Model loaded successfully
                 logger.info(f"CatBoost model loaded from: {self.model_path}")
+                logger.info("ML phishing detection enabled")
             else:
                 logger.warning(
                     f"CatBoost model file not found at {self.model_path}. Falling back to rules."
