@@ -371,7 +371,10 @@
     });
 
     function connectWebSocket(token, sessionId) {
-      websocket = new WebSocket(`ws://localhost:8000/ws/${sessionId}?token=${token}`);
+      // Dynamically determine WebSocket protocol and host
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host; // includes port if present
+      websocket = new WebSocket(`${protocol}//${host}/ws/${sessionId}?token=${token}`);
       
       websocket.onopen = function(event) {
         console.log('WebSocket connected');
