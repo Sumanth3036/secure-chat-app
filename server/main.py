@@ -160,7 +160,7 @@ def generate_qr_token(user_email: str) -> str:
         # Create token data with user email and expiry
         token_data = {
             "user_email": user_email,
-            "expires_at": (datetime.utcnow() + timedelta(minutes=1)).isoformat(),
+            "expires_at": (datetime.utcnow() + timedelta(minutes=2)).isoformat(),
             "created_at": datetime.utcnow().isoformat()
         }
         
@@ -451,7 +451,7 @@ async def create_qr_code():
                 "token": encrypted_token,
                 "user_email": user_email,
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "expires_at": datetime.utcnow() + timedelta(minutes=2),
                 "used": False
             }
             await qr_tokens_collection.insert_one(token_doc)
@@ -460,7 +460,7 @@ async def create_qr_code():
             in_memory_qr_tokens[encrypted_token] = {
                 "user_email": user_email,
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "expires_at": datetime.utcnow() + timedelta(minutes=2),
                 "used": False
             }
         
@@ -482,7 +482,7 @@ async def create_qr_code():
         return {
             "token": encrypted_token,
             "data_url": data_url,
-            "expires_at": (datetime.utcnow() + timedelta(minutes=1)).isoformat()
+            "expires_at": (datetime.utcnow() + timedelta(minutes=2)).isoformat()
         }
         
     except Exception as e:
@@ -511,7 +511,7 @@ async def generate_qrcode(user_email: str = Query(..., description="User email f
                 "token": encrypted_token,
                 "user_email": user_email,
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "expires_at": datetime.utcnow() + timedelta(minutes=2),
                 "used": False
             }
             await qr_tokens_collection.insert_one(token_doc)
@@ -520,7 +520,7 @@ async def generate_qrcode(user_email: str = Query(..., description="User email f
             in_memory_qr_tokens[encrypted_token] = {
                 "user_email": user_email,
                 "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(minutes=1),
+                "expires_at": datetime.utcnow() + timedelta(minutes=2),
                 "used": False
             }
         
@@ -749,6 +749,7 @@ async def websocket_room_endpoint(websocket: WebSocket, session_id: str, token: 
                 response = {
                     "user": user,
                     "message": encrypted_message,
+                    "original_message": message,  # Include original plain text
                     "encrypted": True,
                     "timestamp": datetime.utcnow().isoformat(),
                     "security_info": "Message encrypted with AES-256-CBC"
@@ -918,7 +919,7 @@ async def security_status():
         "encryption_algorithm": "AES-256-CBC",
         "qr_token_security": {
             "encryption": "AES-256-CBC",
-            "expiry": "1 minute",
+            "expiry": "2 minutes",
             "storage": "MongoDB with TTL" if mongodb_connected else "In-Memory",
             "one_time_use": True,
             "no_raw_data": True

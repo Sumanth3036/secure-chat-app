@@ -326,7 +326,7 @@
       <span class="close" onclick="closeQRModal()">&times;</span>
       <h3>🔐 Secure QR Code Generated</h3>
       <div id="qrImage"></div>
-      <p>This QR code contains an encrypted token that expires in 1 minute.</p>
+      <p>This QR code contains an encrypted token that expires in 2 minutes.</p>
       <p><strong>Security:</strong> AES-256 encrypted, one-time use, no raw data exposure.</p>
     </div>
   </div>
@@ -414,7 +414,7 @@
           
           // Handle encrypted messages from backend
           if (data.encrypted) {
-            addEncryptedMessage(data.user, data.message, data.security_info, data.ml_threat);
+            addEncryptedMessage(data.user, data.message, data.security_info, data.ml_threat, data.original_message);
           } else {
             addReceivedMessage(data.user, data.message);
             showDesktopNotification(`New message from ${data.user}`, data.message);
@@ -547,7 +547,7 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-        function addEncryptedMessage(user, encryptedText, securityInfo, mlThreat) {
+        function addEncryptedMessage(user, encryptedText, securityInfo, mlThreat, originalMessage) {
         const chatBox = document.getElementById('chat-box');
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message received';
@@ -582,14 +582,21 @@
             `;
         }
         
-        // Show encrypted message with security badge
+        // Show both original message and encrypted message
         msgDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                 <strong>${user}:</strong>
                 <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px;">🔒 ENCRYPTED</span>
             </div>
             ${threatWarning}
-            <div style="font-family: monospace; background: #2a2a2a; padding: 8px; border-radius: 4px; margin: 4px 0; word-break: break-all;">
+            ${originalMessage ? `
+            <div style="background: #1e3a5f; padding: 8px; border-radius: 4px; margin: 4px 0; word-break: break-word;">
+                <div style="font-size: 10px; color: #aaa; margin-bottom: 4px;">📝 Original Message:</div>
+                ${originalMessage}
+            </div>
+            ` : ''}
+            <div style="font-family: monospace; background: #2a2a2a; padding: 8px; border-radius: 4px; margin: 4px 0; word-break: break-all; font-size: 11px;">
+                <div style="font-size: 10px; color: #aaa; margin-bottom: 4px;">🔐 Encrypted (AES-256):</div>
                 ${encryptedText}
             </div>
             <div style="font-size: 11px; color: #28a745; margin-top: 4px;">
