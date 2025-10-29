@@ -14,19 +14,19 @@ Run these commands ONE BY ONE and SAVE the output:
 Command 1 - Generate SECRET_KEY (64 characters):
 -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
 
-SAVE OUTPUT AS: SECRET_KEY = _______________________
+SAVE OUTPUT AS: SECRET_KEY = xtlhSf86knBiQLmzYI0CPZTD34Vdojabcs2KW7NAvwerJqRUgEMFXypuO5GH19____________________
 
 
 Command 2 - Generate AES_SECRET_KEY (32 characters):
 -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
 
-SAVE OUTPUT AS: AES_SECRET_KEY = _______________________
+SAVE OUTPUT AS: AES_SECRET_KEY = bxqKw5NIu4rtphP1VSickDEsBaXH8LWJ______________________
 
 
 Command 3 - Generate AES_IV (16 characters):
 -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 16 | ForEach-Object {[char]$_})
 
-SAVE OUTPUT AS: AES_IV = _______________________
+SAVE OUTPUT AS: AES_IV = _0Qqo9pUZicHhkIvC______________________
 
 
 ================================================================================
