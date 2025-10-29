@@ -21,6 +21,7 @@ import base64
 from dotenv import load_dotenv
 from security_monitor import security_monitor, SecurityWarning
 from ml_detector import get_detector
+from email_service import get_email_service
 
 # Load environment variables
 load_dotenv()
@@ -101,6 +102,18 @@ class QRToken(BaseModel):
 class ValidateContent(BaseModel):
     content: str
     content_type: str = "text"  # text, url, qr
+
+class SendOTP(BaseModel):
+    email: str
+
+class VerifyOTP(BaseModel):
+    email: str
+    otp: str
+
+class ResetPassword(BaseModel):
+    email: str
+    otp: str
+    new_password: str
 
 # AES Encryption/Decryption functions
 def encrypt_message(message: str) -> str:
@@ -414,6 +427,165 @@ async def login(user: UserLogin):
         "token": access_token,
         "security_info": "Password verified with bcrypt, JWT token generated"
     }
+
+# OTP Endpoints
+@app.post("/send-otp")
+async def send_otp(data: SendOTP):
+    """Send OTP to email for verification during signup"""
+    try:
+        email_service = get_email_service()
+        result = email_service.send_verification_otp(data.email)
+        
+        if result["success"]:
+            return {
+                "message": result["message"],
+                "email": data.email,
+                "expiry_minutes": 5
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result["message"]
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send OTP: {str(e)}"
+        )
+
+@app.post("/verify-otp")
+async def verify_otp(data: VerifyOTP):
+    """Verify OTP for email verification"""
+    try:
+        email_service = get_email_service()
+        result = email_service.verify_otp(data.email, data.otp, purpose="verification")
+        
+        if result["valid"]:
+            return {
+                "valid": True,
+                "message": result["message"]
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify OTP: {str(e)}"
+        )
+
+@app.post("/forgot-password")
+async def forgot_password(data: SendOTP):
+    """Send OTP for password reset"""
+    try:
+        # Check if user exists
+        db_user = None
+        if mongodb_connected:
+            user_collection = get_user_collection()
+            db_user = await user_collection.find_one({"email": data.email})
+        else:
+            db_user = in_memory_users.get(data.email)
+        
+        if not db_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Email not found"
+            )
+        
+        # Send OTP
+        email_service = get_email_service()
+        result = email_service.send_password_reset_otp(data.email)
+        
+        if result["success"]:
+            return {
+                "message": result["message"],
+                "email": data.email,
+                "expiry_minutes": 5
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result["message"]
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send password reset OTP: {str(e)}"
+        )
+
+@app.post("/reset-password")
+async def reset_password(data: ResetPassword):
+    """Reset password using OTP"""
+    try:
+        # Verify OTP
+        email_service = get_email_service()
+        result = email_service.verify_otp(data.email, data.otp, purpose="reset")
+        
+        if not result["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result["message"]
+            )
+        
+        # Validate new password
+        if len(data.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must be at least 8 characters long"
+            )
+        
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        if not any(char in special_chars for char in data.new_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must contain at least one special character"
+            )
+        
+        # Hash new password
+        hashed_password = bcrypt.hash(data.new_password, rounds=12)
+        
+        # Update password in database
+        if mongodb_connected:
+            user_collection = get_user_collection()
+            result = await user_collection.update_one(
+                {"email": data.email},
+                {"$set": {
+                    "password_hash": hashed_password,
+                    "password_updated_at": datetime.utcnow()
+                }}
+            )
+            if result.modified_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+        else:
+            if data.email not in in_memory_users:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+            in_memory_users[data.email]["password_hash"] = hashed_password
+            in_memory_users[data.email]["password_updated_at"] = datetime.utcnow()
+        
+        return {
+            "message": "Password reset successfully",
+            "email": data.email
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reset password: {str(e)}"
+        )
 
 # Enhanced chat endpoint with encryption
 @app.post("/chat")

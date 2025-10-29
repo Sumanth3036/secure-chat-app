@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create an Account</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url("img/Master_Cybersecurity_Thumb-1024x657.jpg") no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      color: white;
+      position: relative;
+      padding: 20px;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 0;
+    }
+    .card {
+      position: relative;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 3rem 2.5rem;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+      z-index: 1;
+    }
+    .card h2 {
+      margin-bottom: 2rem;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #fff;
+    }
+    .input-box {
+      width: 100%;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .input-box input {
+      width: 100%;
+      padding: 16px;
+      padding-right: 50px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      outline: none;
+      font-size: 16px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      transition: all 0.3s;
+    }
+    .input-box input:focus {
+      border-color: #4da6ff;
+      background: rgba(255,255,255,0.1);
+    }
+    .input-box input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    .toggle-password {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 20px;
+      user-select: none;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #0066ff;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1rem;
+      margin-bottom: 1.5rem;
+      transition: background 0.3s;
+    }
+    .btn-primary:hover { 
+      background: #0052cc; 
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-primary:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #4da6ff;
+      border-radius: 8px;
+      background: transparent;
+      color: #4da6ff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      transition: all 0.3s;
+    }
+    .btn-secondary:hover {
+      background: rgba(77, 166, 255, 0.1);
+    }
+    .bottom-text {
+      font-size: 16px;
+      color: #ccc;
+      margin-top: 1rem;
+    }
+    .bottom-text a {
+      color: #4da6ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .bottom-text a:hover { 
+      text-decoration: underline; 
+    }
+    .logo {
+      position: absolute;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      font-weight: bold;
+      color: #4da6ff;
+      letter-spacing: 2px;
+      z-index: 2;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .password-requirements {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 1rem;
+      text-align: left;
+    }
+    .password-requirements ul {
+      margin: 0.5rem 0 0 1.5rem;
+      padding: 0;
+    }
+    .otp-section {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(77, 166, 255, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(77, 166, 255, 0.3);
+    }
+    .otp-section.active {
+      display: block;
+    }
+    .otp-info {
+      font-size: 14px;
+      color: #4da6ff;
+      margin-bottom: 1rem;
+    }
+    .success-message {
+      color: #28a745;
+      font-size: 14px;
+      margin-top: 0.5rem;
+    }
+    .error-message {
+      color: #dc3545;
+      font-size: 14px;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">Private Chat</div>
+  <div class="card">
+    <h2>Create an Account</h2>
+
+    <form id="signupForm">
+      <div class="input-box">
+        <input type="email" id="email" placeholder="Email" required>
+      </div>
+
+      <div class="input-box">
+        <input type="password" id="password" placeholder="Password (min 8 chars + special char)" required minlength="8">
+        <span class="toggle-password" onclick="togglePassword()">👁️</span>
+      </div>
+      
+      <div class="password-requirements">
+        Password must contain:
+        <ul>
+          <li>At least 8 characters</li>
+          <li>At least one special character (!@#$%^&*)</li>
+        </ul>
+      </div>
+
+      <button type="button" class="btn-secondary" onclick="sendOTP()" id="sendOtpBtn">
+        📧 Send Verification OTP
+      </button>
+
+      <div class="otp-section" id="otpSection">
+        <div class="otp-info">
+          ✉️ OTP sent to your email. Valid for 5 minutes.
+        </div>
+        <div class="input-box">
+          <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" pattern="[0-9]{6}">
+        </div>
+        <button type="button" class="btn-secondary" onclick="verifyOTP()" id="verifyOtpBtn">
+          ✅ Verify OTP
+        </button>
+      </div>
+
+      <div id="statusMessage"></div>
+
+      <button type="submit" class="btn-primary" id="signupBtn" disabled>Create Account</button>
+    </form>
+
+    <div class="bottom-text">
+      Already Have An Account? <a href="login.html">Log In</a>
+    </div>
+  </div>
+
+  <script>
+    let otpVerified = false;
+    let currentEmail = '';
+
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const toggleIcon = document.querySelector('.toggle-password');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        toggleIcon.textContent = '👁️';
+      }
+    }
+
+    async function sendOTP() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      if (!email) {
+        showMessage('Please enter your email', 'error');
+        return;
+      }
+
+      if (!password) {
+        showMessage('Please enter your password', 'error');
+        return;
+      }
+
+      // Validate password
+      if (password.length < 8) {
+        showMessage('Password must be at least 8 characters long', 'error');
+        return;
+      }
+      
+      const specialChars = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/;
+      if (!specialChars.test(password)) {
+        showMessage('Password must contain at least one special character', 'error');
+        return;
+      }
+
+      currentEmail = email;
+      const sendOtpBtn = document.getElementById('sendOtpBtn');
+      sendOtpBtn.disabled = true;
+      sendOtpBtn.textContent = '📧 Sending...';
+
+      try {
+        const response = await fetch('/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ OTP sent to your email!', 'success');
+          document.getElementById('otpSection').classList.add('active');
+          sendOtpBtn.textContent = '📧 Resend OTP';
+        } else {
+          showMessage('❌ Failed to send OTP: ' + (data.detail || 'Unknown error'), 'error');
+          sendOtpBtn.textContent = '📧 Send Verification OTP';
+        }
+      } catch (error) {
+        showMessage('❌ Error: ' + error.message, 'error');
+        sendOtpBtn.textContent = '📧 Send Verification OTP';
+      } finally {
+        sendOtpBtn.disabled = false;
+      }
+    }
+
+    async function verifyOTP() {
+      const otp = document.getElementById('otp').value;
+      
+      if (!otp || otp.length !== 6) {
+        showMessage('Please enter a valid 6-digit OTP', 'error');
+        return;
+      }
+
+      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+      verifyOtpBtn.disabled = true;
+      verifyOtpBtn.textContent = '⏳ Verifying...';
+
+      try {
+        const response = await fetch('/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: currentEmail,
+            otp: otp
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          otpVerified = true;
+          showMessage('✅ Email verified successfully!', 'success');
+          document.getElementById('signupBtn').disabled = false;
+          document.getElementById('otpSection').style.display = 'none';
+          document.getElementById('sendOtpBtn').style.display = 'none';
+        } else {
+          showMessage('❌ ' + (data.detail || 'Invalid OTP'), 'error');
+          verifyOtpBtn.textContent = '✅ Verify OTP';
+          verifyOtpBtn.disabled = false;
+        }
+      } catch (error) {
+        showMessage('❌ Error: ' + error.message, 'error');
+        verifyOtpBtn.textContent = '✅ Verify OTP';
+        verifyOtpBtn.disabled = false;
+      }
+    }
+
+    function showMessage(message, type) {
+      const statusDiv = document.getElementById('statusMessage');
+      statusDiv.className = type === 'success' ? 'success-message' : 'error-message';
+      statusDiv.textContent = message;
+      
+      setTimeout(() => {
+        if (type === 'error') {
+          statusDiv.textContent = '';
+        }
+      }, 5000);
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!otpVerified) {
+        showMessage('Please verify your email with OTP first', 'error');
+        return;
+      }
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      const signupBtn = document.getElementById('signupBtn');
+      signupBtn.disabled = true;
+      signupBtn.textContent = 'Creating Account...';
+      
+      try {
+        const response = await fetch('/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          showMessage('✅ Account created successfully!', 'success');
+          setTimeout(() => {
+            window.location.href = '/static/login.html';
+          }, 1500);
+        } else {
+          showMessage('❌ Signup failed: ' + (data.detail || 'Unknown error'), 'error');
+          signupBtn.disabled = false;
+          signupBtn.textContent = 'Create Account';
+        }
+      } catch (error) {
+        showMessage('❌ Signup failed: ' + error.message, 'error');
+        signupBtn.disabled = false;
+        signupBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>
