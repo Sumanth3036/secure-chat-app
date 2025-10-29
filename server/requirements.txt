@@ -16,3 +16,4 @@ numpy==1.24.3
 catboost==1.2.5
 scikit-learn==1.2.2
 joblib==1.2.0
+sendgrid==6.11.0
