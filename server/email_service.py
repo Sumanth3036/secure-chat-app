@@ -61,13 +61,27 @@ class EmailService:
         """
         # Console mode - just log the OTP
         if self.email_provider == "console":
-            logger.info("=" * 60)
-            logger.info(f"📧 OTP EMAIL (Console Mode)")
+            user_name = recipient_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            action_text = "verify your email ID" if purpose == "verification" else "reset your password"
+            
+            logger.info("=" * 70)
+            logger.info(f"📧 OTP EMAIL (Console Mode - Not Actually Sent)")
+            logger.info("=" * 70)
             logger.info(f"To: {recipient_email}")
-            logger.info(f"Purpose: {purpose}")
+            logger.info(f"Subject: Your Secure Chat App OTP - {otp}")
+            logger.info("-" * 70)
+            logger.info(f"Dear {user_name},")
+            logger.info(f"")
+            logger.info(f"Please enter the OTP below to {action_text}.")
+            logger.info(f"It's valid for the next {self.otp_expiry_minutes} minutes.")
+            logger.info(f"")
             logger.info(f"OTP: {otp}")
-            logger.info(f"Expires in: {self.otp_expiry_minutes} minutes")
-            logger.info("=" * 60)
+            logger.info(f"")
+            logger.info(f"Note: If you did not make this request, please ignore this.")
+            logger.info(f"")
+            logger.info(f"Regards,")
+            logger.info(f"Secure Chat Team")
+            logger.info("=" * 70)
             return True
         
         # SendGrid mode
@@ -95,7 +109,7 @@ class EmailService:
                 intro_text = "You requested to reset your password."
             
             # HTML content
-            html_content = self._get_email_html(otp, purpose, intro_text)
+            html_content = self._get_email_html(otp, purpose, intro_text, recipient_email)
             
             # Create message
             message = Mail(
@@ -138,17 +152,23 @@ class EmailService:
                 intro_text = "You requested to reset your password."
             
             # HTML and plain text content
-            html_content = self._get_email_html(otp, purpose, intro_text)
+            html_content = self._get_email_html(otp, purpose, intro_text, recipient_email)
+            
+            # Extract name from email
+            user_name = recipient_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            action_text = "verify your email ID linked with your Secure Chat account" if purpose == "verification" else "reset your password for your Secure Chat account"
+            
             text_content = f"""
-Secure Chat App - OTP Verification
+Dear {user_name},
 
-{intro_text}
+Please enter the OTP below to {action_text}. It's valid for the next {self.otp_expiry_minutes} minutes.
 
-Your OTP: {otp}
+{otp}
 
-This OTP will expire in {self.otp_expiry_minutes} minutes.
+Note: If you did not make this request, please ignore this email or contact our support team.
 
-If you didn't request this, please ignore this email.
+Regards,
+Secure Chat Team
             """
             
             # Attach both versions
@@ -172,29 +192,43 @@ If you didn't request this, please ignore this email.
             logger.info(f"📧 FALLBACK - OTP for {recipient_email}: {otp}")
             return True
     
-    def _get_email_html(self, otp: str, purpose: str, intro_text: str) -> str:
-        """Generate HTML email template"""
-        subject_line = "Email Verification" if purpose == "verification" else "Password Reset"
+    def _get_email_html(self, otp: str, purpose: str, intro_text: str, user_email: str = "") -> str:
+        """Generate HTML email template in professional format"""
+        # Extract name from email (first part before @)
+        user_name = user_email.split('@')[0].replace('.', ' ').replace('_', ' ').title() if user_email else "User"
+        
+        # Determine action text
+        if purpose == "verification":
+            action_text = "verify your email ID linked with your Secure Chat account"
+        else:
+            action_text = "reset your password for your Secure Chat account"
         
         return f"""
 <html>
-    <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <h2 style="color: #3d5afe; text-align: center;">🔐 Secure Chat App</h2>
-            <h3 style="color: #333;">{subject_line}</h3>
-            <p style="color: #666; font-size: 16px;">{intro_text}</p>
-            <p style="color: #666; font-size: 16px;">Your One-Time Password (OTP) is:</p>
-            <div style="background-color: #f0f0f0; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">
-                <h1 style="color: #3d5afe; font-size: 36px; margin: 0; letter-spacing: 5px;">{otp}</h1>
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <p style="color: #333; font-size: 16px; margin-bottom: 20px;">Dear {user_name},</p>
+            
+            <p style="color: #555; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+                Please enter the OTP below to {action_text}. It's valid for the next {self.otp_expiry_minutes} minutes.
+            </p>
+            
+            <div style="background-color: #f5f5f5; padding: 25px; text-align: center; border-radius: 6px; margin: 25px 0; border: 2px dashed #ddd;">
+                <h1 style="color: #2c3e50; font-size: 42px; margin: 0; letter-spacing: 8px; font-weight: bold;">{otp}</h1>
             </div>
-            <p style="color: #666; font-size: 14px;">
-                ⏱️ This OTP will expire in <strong>{self.otp_expiry_minutes} minutes</strong>.
+            
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-top: 25px;">
+                <strong>Note:</strong> If you did not make this request, please ignore this email or contact our support team.
             </p>
-            <p style="color: #666; font-size: 14px;">
-                ⚠️ If you didn't request this, please ignore this email.
+            
+            <p style="color: #333; font-size: 15px; margin-top: 30px;">
+                Regards,<br>
+                <strong>Secure Chat Team</strong>
             </p>
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px; text-align: center;">
+            
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+            
+            <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
                 This is an automated email. Please do not reply.<br>
                 © 2025 Secure Chat App. All rights reserved.
             </p>
