@@ -25,9 +25,11 @@ Your project has been scanned, verified, and cleaned. All unnecessary files remo
 - ✅ **generate_deployment_qr.py** - QR code generator
 
 ### Documentation
-- ✅ **DEPLOY_NOW.md** - ⭐ **YOUR DEPLOYMENT GUIDE**
-- ✅ **START_HERE.md** - Local development guide
+- ✅ **README.md** - This file (project overview)
+- ✅ **DEPLOY_NOW.md** - ⭐ **Deployment guide for Render**
 - ✅ **QUICK_START.md** - Quick start for local testing
+- ✅ **ENCRYPTION_DEMO_GUIDE.md** - ⭐ **Faculty demonstration guide**
+- ✅ **RENDER_URLS.md** - ⭐ **All URLs for faculty presentation**
 
 ---
 
@@ -126,8 +128,10 @@ Scan the QR code with your phone to access the app!
 - 🤖 **ML phishing detection** - CatBoost model (96.79% accuracy)
 - 🔒 **JWT authentication** - Secure token-based auth
 - 💬 **Real-time chat** - WebSocket communication
-- 📱 **QR code access** - Mobile-friendly
+- 📱 **QR code access** - Mobile-friendly with encrypted tokens
 - 🛡️ **Security monitoring** - XSS, spam, rate limiting
+- ✉️ **OTP verification** - 6-box interface for signup & password reset
+- 🔑 **bcrypt password hashing** - Industry-standard password security
 
 ---
 
@@ -143,14 +147,21 @@ Common issues:
 
 ---
 
-## 📚 OTHER DOCUMENTATION
+## 📚 DOCUMENTATION FILES
 
-- **START_HERE.md** - Local development guide
-- **QUICK_START.md** - Quick start for testing locally
-- **FEATURE_DEMO.md** - Feature demonstrations
-- **IMPLEMENTATION_SUMMARY.md** - Technical implementation
-- **ML_INTEGRATION_SUMMARY.md** - ML model details
-- **URL_THREAT_DETECTION.md** - Threat detection details
+### For Deployment:
+- **DEPLOY_NOW.md** - Complete deployment guide for Render
+- **QUICK_START.md** - Local development and testing
+
+### For Faculty Presentation:
+- **ENCRYPTION_DEMO_GUIDE.md** - Complete encryption demonstration guide
+- **RENDER_URLS.md** - All URLs and testing endpoints
+- **FINAL_SUMMARY.txt** - Project summary and features
+
+### Configuration:
+- **.env.example** - Environment variables template
+- **render.yaml** - Render deployment configuration
+- **Procfile** - Process definition for deployment
 
 ---
 
