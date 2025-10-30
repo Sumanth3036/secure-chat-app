@@ -161,22 +161,6 @@
       margin: 0.5rem 0 0 1.5rem;
       padding: 0;
     }
-    .otp-section {
-      display: none;
-      margin-top: 1rem;
-      padding: 1rem;
-      background: rgba(77, 166, 255, 0.1);
-      border-radius: 8px;
-      border: 1px solid rgba(77, 166, 255, 0.3);
-    }
-    .otp-section.active {
-      display: block;
-    }
-    .otp-info {
-      font-size: 14px;
-      color: #4da6ff;
-      margin-bottom: 1rem;
-    }
     .success-message {
       color: #28a745;
       font-size: 14px;
@@ -212,25 +196,9 @@
         </ul>
       </div>
 
-      <button type="button" class="btn-secondary" onclick="sendOTP()" id="sendOtpBtn">
-        📧 Send Verification OTP
-      </button>
-
-      <div class="otp-section" id="otpSection">
-        <div class="otp-info">
-          ✉️ OTP sent to your email. Valid for 5 minutes.
-        </div>
-        <div class="input-box">
-          <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" pattern="[0-9]{6}">
-        </div>
-        <button type="button" class="btn-secondary" onclick="verifyOTP()" id="verifyOtpBtn">
-          ✅ Verify OTP
-        </button>
-      </div>
-
       <div id="statusMessage"></div>
 
-      <button type="submit" class="btn-primary" id="signupBtn" disabled>Create Account</button>
+      <button type="submit" class="btn-primary" id="signupBtn">Send Verification OTP</button>
     </form>
 
     <div class="bottom-text">
@@ -239,9 +207,6 @@
   </div>
 
   <script>
-    let otpVerified = false;
-    let currentEmail = '';
-
     function togglePassword() {
       const passwordInput = document.getElementById('password');
       const toggleIcon = document.querySelector('.toggle-password');
@@ -255,7 +220,21 @@
       }
     }
 
-    async function sendOTP() {
+    function showMessage(message, type) {
+      const statusDiv = document.getElementById('statusMessage');
+      statusDiv.className = type === 'success' ? 'success-message' : 'error-message';
+      statusDiv.textContent = message;
+      
+      setTimeout(() => {
+        if (type === 'error') {
+          statusDiv.textContent = '';
+        }
+      }, 5000);
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       
@@ -281,11 +260,10 @@
         return;
       }
 
-      currentEmail = email;
-      const sendOtpBtn = document.getElementById('sendOtpBtn');
-      sendOtpBtn.disabled = true;
-      sendOtpBtn.textContent = '📧 Sending...';
-
+      const signupBtn = document.getElementById('signupBtn');
+      signupBtn.disabled = true;
+      signupBtn.textContent = '📧 Sending OTP...';
+      
       try {
         const response = await fetch('/send-otp', {
           method: 'POST',
@@ -298,120 +276,19 @@
         const data = await response.json();
         
         if (response.ok) {
-          showMessage('✅ OTP sent to your email!', 'success');
-          document.getElementById('otpSection').classList.add('active');
-          sendOtpBtn.textContent = '📧 Resend OTP';
+          showMessage('✅ OTP sent! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = `/static/otp_verify.html?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+          }, 1000);
         } else {
           showMessage('❌ Failed to send OTP: ' + (data.detail || 'Unknown error'), 'error');
-          sendOtpBtn.textContent = '📧 Send Verification OTP';
-        }
-      } catch (error) {
-        showMessage('❌ Error: ' + error.message, 'error');
-        sendOtpBtn.textContent = '📧 Send Verification OTP';
-      } finally {
-        sendOtpBtn.disabled = false;
-      }
-    }
-
-    async function verifyOTP() {
-      const otp = document.getElementById('otp').value;
-      
-      if (!otp || otp.length !== 6) {
-        showMessage('Please enter a valid 6-digit OTP', 'error');
-        return;
-      }
-
-      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-      verifyOtpBtn.disabled = true;
-      verifyOtpBtn.textContent = '⏳ Verifying...';
-
-      try {
-        const response = await fetch('/verify-otp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: currentEmail,
-            otp: otp
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          otpVerified = true;
-          showMessage('✅ Email verified successfully!', 'success');
-          document.getElementById('signupBtn').disabled = false;
-          document.getElementById('otpSection').style.display = 'none';
-          document.getElementById('sendOtpBtn').style.display = 'none';
-        } else {
-          showMessage('❌ ' + (data.detail || 'Invalid OTP'), 'error');
-          verifyOtpBtn.textContent = '✅ Verify OTP';
-          verifyOtpBtn.disabled = false;
-        }
-      } catch (error) {
-        showMessage('❌ Error: ' + error.message, 'error');
-        verifyOtpBtn.textContent = '✅ Verify OTP';
-        verifyOtpBtn.disabled = false;
-      }
-    }
-
-    function showMessage(message, type) {
-      const statusDiv = document.getElementById('statusMessage');
-      statusDiv.className = type === 'success' ? 'success-message' : 'error-message';
-      statusDiv.textContent = message;
-      
-      setTimeout(() => {
-        if (type === 'error') {
-          statusDiv.textContent = '';
-        }
-      }, 5000);
-    }
-
-    document.getElementById('signupForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      if (!otpVerified) {
-        showMessage('Please verify your email with OTP first', 'error');
-        return;
-      }
-
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      
-      const signupBtn = document.getElementById('signupBtn');
-      signupBtn.disabled = true;
-      signupBtn.textContent = 'Creating Account...';
-      
-      try {
-        const response = await fetch('/signup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email,
-            password: password
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          showMessage('✅ Account created successfully!', 'success');
-          setTimeout(() => {
-            window.location.href = '/static/login.html';
-          }, 1500);
-        } else {
-          showMessage('❌ Signup failed: ' + (data.detail || 'Unknown error'), 'error');
           signupBtn.disabled = false;
-          signupBtn.textContent = 'Create Account';
+          signupBtn.textContent = 'Send Verification OTP';
         }
       } catch (error) {
-        showMessage('❌ Signup failed: ' + error.message, 'error');
+        showMessage('❌ Error: ' + error.message, 'error');
         signupBtn.disabled = false;
-        signupBtn.textContent = 'Create Account';
+        signupBtn.textContent = 'Send Verification OTP';
       }
     });
   </script>
