@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alert - Secure Chat</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+    }
+
+    /* Overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Popup card */
+    .popup {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 340px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .popup h3 {
+      color: #e63946;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .popup p {
+      font-size: 0.95rem;
+      color: #333;
+      margin-bottom: 1.5rem;
+      line-height: 1.4;
+    }
+
+    .popup button {
+      background: #4da6ff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .popup button:hover {
+      background: #1a75ff;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="popup">
+      <h3>Session destroyed</h3>
+      <p>Unauthorized participant detected.<br>The chat has been erased.</p>
+      <button onclick="closePopup()">OK</button>
+    </div>
+  </div>
+
+  <script>
+    function closePopup() {
+      // Clear authToken from localStorage
+      localStorage.removeItem('authToken');
+      // Redirect to login page
+      window.location.href = '/static/login.html';
+    }
+  </script>
+</body>
+</html>

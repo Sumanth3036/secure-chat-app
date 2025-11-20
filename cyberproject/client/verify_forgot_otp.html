@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Reset Code - Private Chat</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      position: relative;
+      padding: 20px;
+      overflow: hidden;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(77, 166, 255, 0.15), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(74, 47, 189, 0.15), transparent 50%),
+        linear-gradient(45deg, transparent 30%, rgba(77, 166, 255, 0.03) 50%, transparent 70%);
+      z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(77, 166, 255, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: 0;
+    }
+    .header {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4da6ff;
+      text-shadow: 0 0 20px rgba(77, 166, 255, 0.5);
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header::after {
+      content: "✉️";
+      font-size: 1.5rem;
+      filter: drop-shadow(0 0 10px rgba(77, 166, 255, 0.5));
+    }
+    .card {
+      position: relative;
+      background: rgba(20, 20, 30, 0.85);
+      backdrop-filter: blur(10px);
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(77, 166, 255, 0.1);
+      z-index: 1;
+      border: 1px solid rgba(77, 166, 255, 0.2);
+    }
+    .card h2 {
+      margin-bottom: 1rem;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #fff;
+    }
+    .email-info {
+      color: #4da6ff;
+      font-size: 1rem;
+      margin-bottom: 2rem;
+      word-break: break-all;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    .email-info:hover {
+      color: #6bb6ff;
+    }
+    .otp-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+    .otp-input {
+      width: 55px;
+      height: 65px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      font-size: 2rem;
+      text-align: center;
+      font-weight: bold;
+      transition: all 0.3s;
+      outline: none;
+    }
+    .otp-input:focus {
+      border-color: #4da6ff;
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.2);
+      transform: scale(1.05);
+    }
+    .otp-input.filled {
+      border-color: #4da6ff;
+      background: rgba(77, 166, 255, 0.1);
+    }
+    .status-message {
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+    .status-success {
+      background: rgba(40, 167, 69, 0.2);
+      border: 1px solid rgba(40, 167, 69, 0.5);
+      color: #4ade80;
+    }
+    .status-verifying {
+      background: rgba(77, 166, 255, 0.2);
+      border: 1px solid rgba(77, 166, 255, 0.5);
+      color: #6bb6ff;
+    }
+    .status-error {
+      background: rgba(220, 53, 69, 0.2);
+      border: 1px solid rgba(220, 53, 69, 0.5);
+      color: #ff6b7a;
+    }
+    .info-text {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .resend-section {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+    .resend-link {
+      color: #4da6ff;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+    .resend-link:hover {
+      color: #6bb6ff;
+      text-decoration: underline;
+    }
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2rem;
+      color: #4da6ff;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: color 0.3s;
+    }
+    .back-link:hover {
+      color: #6bb6ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Private Chat</div>
+  
+  <div class="card">
+    <h2>Check your inbox</h2>
+    <div class="email-info" id="emailDisplay">tejasairavikumar@gmail.com</div>
+    
+    <div class="info-text">
+      Enter the verification code sent to <span id="emailText" style="color: #4da6ff;">tejasairavikumar@gmail.com</span>
+    </div>
+
+    <div class="otp-container" id="otpContainer">
+      <input type="text" class="otp-input" maxlength="1" id="otp1" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+      <input type="text" class="otp-input" maxlength="1" id="otp2" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+      <input type="text" class="otp-input" maxlength="1" id="otp3" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+      <input type="text" class="otp-input" maxlength="1" id="otp4" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+      <input type="text" class="otp-input" maxlength="1" id="otp5" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+      <input type="text" class="otp-input" maxlength="1" id="otp6" autocomplete="off" inputmode="numeric" pattern="[0-9]">
+    </div>
+
+    <div class="status-message status-success" id="successStatus">
+      <span>✅</span>
+      <span>Code verified! Redirecting...</span>
+    </div>
+
+    <div class="status-message status-verifying" id="verifyingStatus">
+      <span>⏳</span>
+      <span>Verifying...</span>
+    </div>
+
+    <div class="status-message status-error" id="errorStatus">
+      <span>❌</span>
+      <span id="errorText">Invalid verification code</span>
+    </div>
+
+    <div class="info-text">
+      Check your spam folder if you can't find it in your inbox.
+    </div>
+
+    <div class="otp-timer" id="otpTimer" style="color: #4da6ff; font-size: 0.9rem; margin: 1rem 0;">
+      Code expires in: <span id="timerDisplay">5:00</span>
+    </div>
+
+    <div class="resend-section">
+      Didn't receive the code? <a href="#" class="resend-link" id="resendLink" onclick="resendOTP(event)">Resend</a>
+      <span id="rateLimitInfo" style="display: none; color: #ff6b7a; font-size: 0.85rem; margin-left: 10px;"></span>
+    </div>
+
+    <a href="forgot_password.html" class="back-link">
+      <span>←</span>
+      <span>Back to Forgot Password</span>
+    </a>
+  </div>
+
+  <script>
+    const email = localStorage.getItem('reset_email') || 'tejasairavikumar@gmail.com';
+    
+    document.getElementById('emailDisplay').textContent = email;
+    document.getElementById('emailText').textContent = email;
+
+    // OTP Expiry Timer (5 minutes)
+    let otpExpiryTime = 5 * 60; // 5 minutes in seconds
+    let timerInterval = null;
+    const timerDisplay = document.getElementById('timerDisplay');
+    const otpTimer = document.getElementById('otpTimer');
+
+    function startOTPTimer() {
+      otpExpiryTime = 5 * 60; // Reset to 5 minutes
+      if (timerInterval) clearInterval(timerInterval);
+      
+      timerInterval = setInterval(() => {
+        otpExpiryTime--;
+        const minutes = Math.floor(otpExpiryTime / 60);
+        const seconds = otpExpiryTime % 60;
+        timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        if (otpExpiryTime <= 0) {
+          clearInterval(timerInterval);
+          timerDisplay.textContent = 'Expired';
+          otpTimer.style.color = '#ff6b7a';
+          timerDisplay.textContent = 'Code expired. Please request a new one.';
+        } else if (otpExpiryTime <= 60) {
+          otpTimer.style.color = '#ff6b7a'; // Red when less than 1 minute
+        }
+      }, 1000);
+    }
+
+    // Check rate limit status
+    async function checkRateLimit() {
+      try {
+        const response = await fetch(`/otp_rate_limit_status?email=${encodeURIComponent(email)}&purpose=forgot_password`);
+        let data;
+        try {
+          const text = await response.text();
+          data = text ? JSON.parse(text) : { can_request: true };
+        } catch (jsonError) {
+          console.error('Rate limit JSON parsing error:', jsonError);
+          data = { can_request: true }; // Default to allowing if parsing fails
+        }
+        
+        const resendLink = document.getElementById('resendLink');
+        const rateLimitInfo = document.getElementById('rateLimitInfo');
+        
+        if (!data.can_request) {
+          resendLink.style.pointerEvents = 'none';
+          resendLink.style.color = '#666';
+          const waitMinutes = Math.ceil(data.wait_seconds / 60);
+          rateLimitInfo.textContent = `(Wait ${waitMinutes} min)`;
+          rateLimitInfo.style.display = 'inline';
+        } else {
+          resendLink.style.pointerEvents = 'auto';
+          resendLink.style.color = '#4da6ff';
+          rateLimitInfo.style.display = 'none';
+          if (data.remaining_attempts < 3) {
+            rateLimitInfo.textContent = `(${data.remaining_attempts} remaining)`;
+            rateLimitInfo.style.display = 'inline';
+            rateLimitInfo.style.color = '#ffc107';
+          }
+        }
+      } catch (error) {
+        console.error('Error checking rate limit:', error);
+      }
+    }
+
+    // Start timer and check rate limit on page load
+    startOTPTimer();
+    checkRateLimit();
+    setInterval(checkRateLimit, 30000); // Check every 30 seconds
+
+    const otpInputs = [];
+    for (let i = 1; i <= 6; i++) {
+      otpInputs.push(document.getElementById(`otp${i}`));
+    }
+
+    // Auto-focus and auto-advance
+    otpInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        const value = e.target.value.replace(/[^0-9]/g, '');
+        e.target.value = value;
+        
+        if (value && index < otpInputs.length - 1) {
+          otpInputs[index + 1].focus();
+        }
+        
+        checkOTP();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          otpInputs[index - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+        pastedData.split('').forEach((char, i) => {
+          if (otpInputs[i]) {
+            otpInputs[i].value = char;
+            otpInputs[i].classList.add('filled');
+          }
+        });
+        if (pastedData.length === 6) {
+          otpInputs[5].focus();
+          checkOTP();
+        } else if (pastedData.length > 0) {
+          otpInputs[pastedData.length].focus();
+        }
+      });
+    });
+
+    // Focus first input on load
+    otpInputs[0].focus();
+
+    function getOTP() {
+      return otpInputs.map(input => input.value).join('');
+    }
+
+    function checkOTP() {
+      const otp = getOTP();
+      otpInputs.forEach(input => {
+        if (input.value) {
+          input.classList.add('filled');
+        } else {
+          input.classList.remove('filled');
+        }
+      });
+
+      if (otp.length === 6) {
+        verifyOTP(otp);
+      }
+    }
+
+    async function verifyOTP(otp) {
+      const verifyingStatus = document.getElementById('verifyingStatus');
+      const successStatus = document.getElementById('successStatus');
+      const errorStatus = document.getElementById('errorStatus');
+      
+      // Hide all statuses
+      verifyingStatus.style.display = 'none';
+      successStatus.style.display = 'none';
+      errorStatus.style.display = 'none';
+
+      // Show verifying
+      verifyingStatus.style.display = 'flex';
+
+      try {
+        const response = await fetch('/verify_forgot_otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            otp_code: otp
+          })
+        });
+        
+        // Check if response is ok before parsing JSON
+        let data;
+        try {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          } else {
+            data = {};
+          }
+        } catch (jsonError) {
+          console.error('JSON parsing error:', jsonError);
+          verifyingStatus.style.display = 'none';
+          errorStatus.style.display = 'flex';
+          document.getElementById('errorText').textContent = 'Server response error. Please try again.';
+          otpInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+          });
+          otpInputs[0].focus();
+          return;
+        }
+        
+        if (response.ok) {
+          // Clear timer
+          if (timerInterval) clearInterval(timerInterval);
+          // Store verification token (more secure than storing OTP)
+          if (data.verification_token) {
+            localStorage.setItem('reset_verification_token', data.verification_token);
+          }
+          verifyingStatus.style.display = 'none';
+          successStatus.style.display = 'flex';
+          
+          setTimeout(() => {
+            window.location.href = 'reset_password.html';
+          }, 2000);
+        } else {
+          verifyingStatus.style.display = 'none';
+          errorStatus.style.display = 'flex';
+          document.getElementById('errorText').textContent = data.detail || data.message || 'Invalid verification code';
+          
+          // Clear OTP inputs
+          otpInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+          });
+          otpInputs[0].focus();
+        }
+      } catch (error) {
+        console.error('Request error:', error);
+        verifyingStatus.style.display = 'none';
+        errorStatus.style.display = 'flex';
+        document.getElementById('errorText').textContent = error.message || 'Verification failed. Please try again.';
+        
+        // Clear OTP inputs
+        otpInputs.forEach(input => {
+          input.value = '';
+          input.classList.remove('filled');
+        });
+        otpInputs[0].focus();
+      }
+    }
+
+    async function resendOTP(e) {
+      e.preventDefault();
+      
+      const resendLink = document.getElementById('resendLink');
+      resendLink.textContent = 'Sending...';
+      resendLink.style.pointerEvents = 'none';
+      
+      try {
+        // Check rate limit before sending
+        const rateLimitResponse = await fetch(`/otp_rate_limit_status?email=${encodeURIComponent(email)}&purpose=forgot_password`);
+        let rateLimitData;
+        try {
+          const text = await rateLimitResponse.text();
+          rateLimitData = text ? JSON.parse(text) : {};
+        } catch (jsonError) {
+          console.error('Rate limit JSON parsing error:', jsonError);
+          rateLimitData = { can_request: true }; // Default to allowing if parsing fails
+        }
+        
+        if (!rateLimitData.can_request) {
+          const waitMinutes = Math.ceil(rateLimitData.wait_seconds / 60);
+          alert(`❌ Too many requests. Please wait ${waitMinutes} minutes before requesting again.`);
+          resendLink.textContent = 'Resend';
+          checkRateLimit();
+          return;
+        }
+        
+        const response = await fetch('/send_forgot_otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email
+          })
+        });
+        
+        // Check if response is ok before parsing JSON
+        let data;
+        try {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          } else {
+            data = {};
+          }
+        } catch (jsonError) {
+          console.error('JSON parsing error:', jsonError);
+          alert('❌ Server response error. Please try again.');
+          resendLink.textContent = 'Resend';
+          checkRateLimit();
+          return;
+        }
+        
+        if (response.ok) {
+          alert('✅ OTP resent! Check your email.');
+          // Clear OTP inputs and restart timer
+          otpInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('filled');
+          });
+          otpInputs[0].focus();
+          startOTPTimer(); // Restart the timer
+          checkRateLimit(); // Update rate limit status
+        } else {
+          alert('❌ ' + (data.detail || 'Failed to resend OTP'));
+        }
+      } catch (error) {
+        alert('❌ Failed to resend OTP: ' + error.message);
+      } finally {
+        resendLink.textContent = 'Resend';
+        checkRateLimit();
+      }
+    }
+  </script>
+</body>
+</html>

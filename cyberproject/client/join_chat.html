@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Chat Session - Private Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      position: relative;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .rocket-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transform: rotate(-45deg);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1rem;
+      margin-bottom: 30px;
+      margin-left: 47px;
+    }
+
+    .input-group {
+      margin-bottom: 25px;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #4da6ff;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .input-group input:focus {
+      border-color: #0066ff;
+      box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1);
+    }
+
+    .input-group input::placeholder {
+      color: #999;
+    }
+
+    .join-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      margin-bottom: 30px;
+    }
+
+    .join-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .join-btn:active {
+      transform: translateY(0);
+    }
+
+    .chat-icon {
+      width: 24px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .instructions-box {
+      background: #e3f2fd;
+      border-radius: 12px;
+      padding: 25px;
+      margin-top: 20px;
+    }
+
+    .instructions-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .lightbulb-icon {
+      width: 24px;
+      height: 24px;
+      background: #ffc107;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .instructions-list {
+      list-style: none;
+      margin-bottom: 25px;
+    }
+
+    .instructions-list li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .instructions-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #4da6ff;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .formats-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+
+    .formats-list {
+      list-style: none;
+    }
+
+    .formats-list li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+      color: #555;
+      line-height: 1.6;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.6);
+      margin-bottom: 5px;
+      border-radius: 6px;
+      padding: 10px 15px;
+    }
+
+    .formats-list li::before {
+      content: "→";
+      position: absolute;
+      left: 5px;
+      color: #4da6ff;
+      font-weight: bold;
+    }
+
+    .back-link {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+
+    .back-link:hover {
+      opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 20px;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .subtitle {
+        margin-left: 0;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">
+    <span>←</span>
+    <span>Back to Home</span>
+  </a>
+
+  <div class="container">
+    <div class="header">
+      <div class="rocket-icon">🚀</div>
+      <h1>Join Chat Session</h1>
+    </div>
+    <p class="subtitle">Paste the session URL or ID from QR code</p>
+
+    <form id="joinForm">
+      <div class="input-group">
+        <label for="sessionInput">Session URL or ID:</label>
+        <input 
+          type="text" 
+          id="sessionInput" 
+          placeholder="Paste: /static/chat.html?session_id=... or just the session_id"
+          required
+        >
+      </div>
+
+      <button type="submit" class="join-btn">
+        <div class="chat-icon">💬</div>
+        <span>Join Chat Now</span>
+      </button>
+    </form>
+
+    <div class="instructions-box">
+      <div class="instructions-title">
+        <div class="lightbulb-icon">💡</div>
+        <span>How to use:</span>
+      </div>
+      <ul class="instructions-list">
+        <li>Scan QR code to get the session URL</li>
+        <li>Paste it in the box above (any format works)</li>
+        <li>Click "Join Chat Now"</li>
+        <li>You'll be redirected to the chat!</li>
+      </ul>
+
+      <div class="formats-title">Supported formats:</div>
+      <ul class="formats-list">
+        <li>Full URL: https://...chat.html?session_id=abc123</li>
+        <li>Relative: /static/chat.html?session_id=abc123</li>
+        <li>With params: session_id=abc123</li>
+        <li>Just ID: abc123</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Check authentication
+    window.addEventListener('load', function() {
+      const authToken = localStorage.getItem('authToken');
+      if (!authToken) {
+        window.location.href = '/static/login.html';
+        return;
+      }
+    });
+
+    // Handle form submission
+    document.getElementById('joinForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const input = document.getElementById('sessionInput').value.trim();
+      if (!input) {
+        alert('Please enter a session URL or ID');
+        return;
+      }
+
+      // Extract session ID from various formats
+      let sessionId = null;
+
+      // Try to extract from URL
+      if (input.includes('session_id=')) {
+        const match = input.match(/session_id=([^&\s]+)/);
+        if (match) {
+          sessionId = match[1];
+        }
+      } 
+      // If it's just an ID (alphanumeric, no special chars except maybe dashes)
+      else if (/^[a-zA-Z0-9-]+$/.test(input)) {
+        sessionId = input;
+      }
+      // Try to extract from any URL format
+      else {
+        const urlMatch = input.match(/([a-f0-9]{32}|[a-f0-9-]{36})/i);
+        if (urlMatch) {
+          sessionId = urlMatch[1];
+        } else {
+          alert('Could not extract session ID. Please check the format.');
+          return;
+        }
+      }
+
+      if (sessionId) {
+        window.location.href = `/static/chat.html?session_id=${sessionId}`;
+      } else {
+        alert('Invalid session ID format. Please check and try again.');
+      }
+    });
+  </script>
+</body>
+</html>
+

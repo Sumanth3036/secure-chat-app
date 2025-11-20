@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create an Account - Private Chat</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      position: relative;
+      padding: 20px;
+      overflow: hidden;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(77, 166, 255, 0.15), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(74, 47, 189, 0.15), transparent 50%),
+        linear-gradient(45deg, transparent 30%, rgba(77, 166, 255, 0.03) 50%, transparent 70%);
+      z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(77, 166, 255, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: 0;
+    }
+    .header {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4da6ff;
+      text-shadow: 0 0 20px rgba(77, 166, 255, 0.5);
+      letter-spacing: 2px;
+    }
+    .card {
+      position: relative;
+      background: rgba(20, 20, 30, 0.85);
+      backdrop-filter: blur(10px);
+      padding: 3rem 2.5rem;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(77, 166, 255, 0.1);
+      z-index: 1;
+      border: 1px solid rgba(77, 166, 255, 0.2);
+    }
+    .card h2 {
+      margin-bottom: 2rem;
+      font-weight: 600;
+      font-size: 2rem;
+      color: #fff;
+    }
+    .input-box {
+      width: 100%;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .input-box input {
+      width: 100%;
+      padding: 16px;
+      padding-right: 50px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      outline: none;
+      font-size: 16px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      transition: all 0.3s;
+    }
+    .input-box input:focus {
+      border-color: #4da6ff;
+      background: rgba(255,255,255,0.08);
+      box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1);
+    }
+    .input-box input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    .password-toggle {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 5px;
+      transition: color 0.3s;
+      z-index: 10;
+    }
+    .password-toggle:hover {
+      color: #4da6ff;
+    }
+    .password-requirements {
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 1rem;
+      text-align: left;
+      line-height: 1.6;
+    }
+    .password-requirements ul {
+      margin: 0.5rem 0 0 1.5rem;
+      padding: 0;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4da6ff 0%, #0066ff 100%);
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(77, 166, 255, 0.3);
+    }
+    .btn-primary:hover { 
+      background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(77, 166, 255, 0.4);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    .btn-primary:disabled {
+      background: #555;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .bottom-text {
+      font-size: 16px;
+      color: #ccc;
+      margin-top: 1rem;
+    }
+    .bottom-text a {
+      color: #4da6ff;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+    .bottom-text a:hover { 
+      text-decoration: underline;
+      color: #6bb6ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Private Chat</div>
+  
+  <div class="card">
+    <h2>Create an Account</h2>
+
+    <form id="signupForm">
+      <div class="input-box">
+        <input type="email" id="email" placeholder="Email" required>
+      </div>
+
+      <div class="input-box">
+        <input type="password" id="password" placeholder="Password (min 8 chars + special char)" required minlength="8">
+        <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePassword()">
+          <span id="eyeIcon">👁️</span>
+        </button>
+      </div>
+      
+      <div class="password-requirements">
+        Password must contain:
+        <ul>
+          <li>At least 8 characters</li>
+          <li>At least one special character (!@#$%^&*)</li>
+        </ul>
+      </div>
+
+      <button type="submit" class="btn-primary" id="submitBtn">Send Verification OTP</button>
+    </form>
+
+    <div class="bottom-text">
+      Already Have An Account? <a href="login.html">Log In</a>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword() {
+      const passwordInput = document.getElementById('password');
+      const eyeIcon = document.getElementById('eyeIcon');
+      
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.textContent = '🙈';
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.textContent = '👁️';
+      }
+    }
+
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // Client-side validation
+      if (password.length < 8) {
+        alert('Password must be at least 8 characters long');
+        return;
+      }
+      
+      const specialChars = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/;
+      if (!specialChars.test(password)) {
+        alert('Password must contain at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)');
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending OTP...';
+      
+      try {
+        const response = await fetch('/send_signup_otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+        
+        // Check if response is ok before parsing JSON
+        let data;
+        try {
+          const text = await response.text();
+          if (text) {
+            data = JSON.parse(text);
+          } else {
+            data = {};
+          }
+        } catch (jsonError) {
+          console.error('JSON parsing error:', jsonError);
+          alert('❌ Server response error. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Verification OTP';
+          return;
+        }
+        
+        if (response.ok) {
+          localStorage.setItem('signup_email', email);
+          // Store password temporarily for OTP resend (will be cleared after signup)
+          // Note: In production, consider using sessionStorage or server-side session
+          localStorage.setItem('signup_password', password);
+          // Use relative path since files are in the same directory
+          window.location.href = 'verify_otp.html?type=signup';
+        } else {
+          alert('❌ ' + (data.detail || data.message || 'Failed to send OTP'));
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Verification OTP';
+        }
+      } catch (error) {
+        console.error('Request error:', error);
+        alert('❌ Failed: ' + (error.message || 'Network error. Please check your connection.'));
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Verification OTP';
+      }
+    });
+  </script>
+</body>
+</html>
