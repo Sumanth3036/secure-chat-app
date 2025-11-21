@@ -23,7 +23,26 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 import base64
 from dotenv import load_dotenv
-from security_monitor import security_monitor, SecurityWarning
+
+# Import security_monitor with error handling
+try:
+    from security_monitor import security_monitor, SecurityWarning
+except Exception as e:
+    print(f"⚠️  Warning: Could not import security_monitor: {e}")
+    # Create a minimal fallback
+    class SecurityWarning:
+        def __init__(self, *args, **kwargs):
+            pass
+    class SecurityMonitor:
+        def analyze_message(self, *args, **kwargs):
+            return []
+        def add_warning(self, *args, **kwargs):
+            pass
+        def should_terminate_session(self, *args, **kwargs):
+            return False
+        def get_warning_count(self, *args, **kwargs):
+            return 0
+    security_monitor = SecurityMonitor()
 
 # Load environment variables
 # Try to load from .docker.env in parent directory, then .env in current directory
@@ -660,15 +679,25 @@ app.add_middleware(
 
 # Mount static files
 # Try to find client directory relative to server directory or current working directory
-import pathlib
-client_dir = pathlib.Path(__file__).parent.parent / "client"
-if not client_dir.exists():
-    # Try current working directory (for Render deployment)
-    client_dir = pathlib.Path.cwd() / "client"
-if client_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(client_dir)), name="static")
-else:
-    print("⚠️  Warning: Client directory not found. Static files will not be served.")
+try:
+    import pathlib
+    client_dir = pathlib.Path(__file__).parent.parent / "client"
+    if not client_dir.exists():
+        # Try current working directory (for Render deployment)
+        client_dir = pathlib.Path.cwd() / "client"
+    if not client_dir.exists():
+        # Try from server directory
+        client_dir = pathlib.Path(__file__).parent / ".." / "client"
+        client_dir = client_dir.resolve()
+    if client_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(client_dir)), name="static")
+        print(f"✅ Static files mounted from: {client_dir}")
+    else:
+        print("⚠️  Warning: Client directory not found. Static files will not be served.")
+        print(f"   Searched in: {pathlib.Path(__file__).parent.parent / 'client'}")
+        print(f"   Searched in: {pathlib.Path.cwd() / 'client'}")
+except Exception as e:
+    print(f"⚠️  Warning: Could not mount static files: {e}")
 
 # Root endpoint
 @app.get("/")
@@ -1430,14 +1459,21 @@ async def websocket_room_endpoint(websocket: WebSocket, session_id: str, token: 
                 message = message_data.get("message", "")
                 
                 # Security monitoring - analyze message for threats
-                warnings = security_monitor.analyze_message(user_email, session_id, message)
+                try:
+                    warnings = security_monitor.analyze_message(user_email, session_id, message)
+                    
+                    # Add warnings to user's record
+                    for warning in warnings:
+                        security_monitor.add_warning(warning)
+                    
+                    # Check if session should be terminated
+                    should_terminate = security_monitor.should_terminate_session(user_email, session_id)
+                except Exception as sec_error:
+                    print(f"⚠️  Security monitoring error: {sec_error}")
+                    warnings = []
+                    should_terminate = False
                 
-                # Add warnings to user's record
-                for warning in warnings:
-                    security_monitor.add_warning(warning)
-                
-                # Check if session should be terminated
-                if security_monitor.should_terminate_session(user_email, session_id):
+                if should_terminate:
                     termination_msg = "Session terminated due to security violations."
                     encrypted_termination = encrypt_message(termination_msg)
                     await websocket.send_json({
@@ -1451,16 +1487,21 @@ async def websocket_room_endpoint(websocket: WebSocket, session_id: str, token: 
                     return
                 
                 # Send warning messages if any
-                for warning in warnings:
-                    warning_msg = f"Security Warning: {warning.message}"
-                    encrypted_warning = encrypt_message(warning_msg)
-                    await websocket.send_json({
-                        "user": "Security System",
-                        "message": encrypted_warning,
-                        "encrypted": True,
-                        "security_info": f"Warning {security_monitor.get_warning_count(user_email, session_id)}/{security_monitor.max_warnings_before_ban}",
-                        "warning": True
-                    })
+                try:
+                    for warning in warnings:
+                        warning_msg = f"Security Warning: {warning.message}"
+                        encrypted_warning = encrypt_message(warning_msg)
+                        warning_count = security_monitor.get_warning_count(user_email, session_id) if hasattr(security_monitor, 'get_warning_count') else 0
+                        max_warnings = security_monitor.max_warnings_before_ban if hasattr(security_monitor, 'max_warnings_before_ban') else 3
+                        await websocket.send_json({
+                            "user": "Security System",
+                            "message": encrypted_warning,
+                            "encrypted": True,
+                            "security_info": f"Warning {warning_count}/{max_warnings}",
+                            "warning": True
+                        })
+                except Exception as warn_error:
+                    print(f"⚠️  Warning message error: {warn_error}")
                 
                 encrypted_message = encrypt_message(message)
                 response = {
