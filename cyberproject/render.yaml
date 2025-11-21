@@ -8,8 +8,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
-      - key: PORT
-        value: 8000
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_ALGORITHM
