@@ -38,8 +38,25 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", "1"))
 
 # AES encryption configuration
-AES_SECRET_KEY = os.getenv("AES_SECRET_KEY", "your-32-character-aes-secret-key-here").encode()
-AES_IV = os.getenv("AES_IV", "your-16-character-iv-here").encode()
+# Ensure AES keys are the correct length (32 bytes for key, 16 bytes for IV)
+_aes_key_str = os.getenv("AES_SECRET_KEY", "your-32-character-aes-secret-key-here")
+_aes_iv_str = os.getenv("AES_IV", "your-16-character-iv-here")
+
+# Pad or truncate to correct length if needed
+if len(_aes_key_str) != 32:
+    if len(_aes_key_str) < 32:
+        _aes_key_str = _aes_key_str.ljust(32, '0')
+    else:
+        _aes_key_str = _aes_key_str[:32]
+
+if len(_aes_iv_str) != 16:
+    if len(_aes_iv_str) < 16:
+        _aes_iv_str = _aes_iv_str.ljust(16, '0')
+    else:
+        _aes_iv_str = _aes_iv_str[:16]
+
+AES_SECRET_KEY = _aes_key_str.encode()
+AES_IV = _aes_iv_str.encode()
 
 # MongoDB configuration
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -584,25 +601,29 @@ async def startup_event():
     global mongodb_connected
     try:
         await connect_to_mongo()
-        
-        # Create indexes for collections
-        user_collection = get_user_collection()
-        qr_tokens_collection = get_qr_tokens_collection()
-        
-        # Ensure unique email index for users
-        await user_collection.create_index("email", unique=True)
-        
-        # Ensure unique token index for QR tokens and TTL index for expiry
-        await qr_tokens_collection.create_index("token", unique=True)
-        await qr_tokens_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index
-        
-        # Create indexes for OTPs collection
-        otps_collection = get_otps_collection()
-        await otps_collection.create_index("email")
-        await otps_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index for auto-cleanup
-        await otps_collection.create_index([("email", 1), ("purpose", 1), ("used", 1)])
-        
         mongodb_connected = True
+        
+        # Only create indexes if MongoDB is connected
+        try:
+            # Create indexes for collections
+            user_collection = get_user_collection()
+            qr_tokens_collection = get_qr_tokens_collection()
+            
+            # Ensure unique email index for users
+            await user_collection.create_index("email", unique=True)
+            
+            # Ensure unique token index for QR tokens and TTL index for expiry
+            await qr_tokens_collection.create_index("token", unique=True)
+            await qr_tokens_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index
+            
+            # Create indexes for OTPs collection
+            otps_collection = get_otps_collection()
+            await otps_collection.create_index("email")
+            await otps_collection.create_index("expires_at", expireAfterSeconds=0)  # TTL index for auto-cleanup
+            await otps_collection.create_index([("email", 1), ("purpose", 1), ("used", 1)])
+        except Exception as index_error:
+            print(f"⚠️  Warning: Could not create indexes: {str(index_error)[:100]}")
+        
         print("✅ MongoDB connected successfully")
     except Exception as e:
         mongodb_connected = False
