@@ -8,7 +8,7 @@ WORKDIR /app
 COPY server/requirements.txt .
 
 # Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && pip install --prefer-binary -r requirements.txt
 
 # Copy the server source code into the container
 COPY ./server /app/server
