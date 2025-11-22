@@ -6,7 +6,10 @@ import string
 from datetime import datetime
 
 # DB collection
-from .db import qrcodes as qrcodes_collection
+try:
+    from server.db import qrcodes as qrcodes_collection
+except ImportError:
+    from db import qrcodes as qrcodes_collection
 
 # Router
 router = APIRouter()

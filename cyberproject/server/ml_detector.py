@@ -1,36 +1,36 @@
 import os
 import re
-import math
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
+from pathlib import Path
 
 import joblib
 
 logger = logging.getLogger(__name__)
 
-
 class CatBoostPhishingDetector:
     """
-    Loads a CatBoost classifier from a pickle and provides a predict_proba interface
-    on raw content (text/URL). Uses the trained CatBoost model for phishing detection.
-
-    The model expects 30 features extracted from URLs/text content.
-    Falls back to rule-based detection if model is unavailable.
+    Loads a CatBoost classifier from a pickle and provides a predict_proba interface.
+    Falls back to rule-based detection if model file is missing or invalid.
     """
 
     def __init__(self, model_path: Optional[str] = None):
-        self.model_path = model_path or os.getenv(
-            "PHISHING_MODEL_PATH",
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "mlmodel",
-                "mlmodelsperformance",
-                "catboost_phishing.pkl",
-            ),
-        )
+        if model_path:
+            self.model_path = model_path
+        elif os.getenv("PHISHING_MODEL_PATH"):
+            self.model_path = os.getenv("PHISHING_MODEL_PATH")
+        else:
+            # Render-safe full absolute path → project_root/mlmodel/mlmodelsperformance/...
+            BASE_DIR = Path(__file__).resolve().parent.parent
+            self.model_path = BASE_DIR / "mlmodel" / "mlmodelsperformance" / "catboost_phishing.pkl"
+
+        # Ensure absolute path
+        self.model_path = str(Path(self.model_path).resolve())
+
+        logger.info(f"Using ML model path: {self.model_path}")
+
         self.model = None
-        self.fallback_mode = False  # Will be set to True if model fails to load
+        self.fallback_mode = False
         self.feature_names = [
             'UsingIP', 'LongURL', 'ShortURL', 'Symbol@', 'Redirecting//',
             'PrefixSuffix-', 'SubDomains', 'HTTPS', 'DomainRegLen', 'Favicon',
@@ -43,21 +43,25 @@ class CatBoostPhishingDetector:
         ]
         self._load_model()
 
-    def _load_model(self) -> None:
+    def _load_model(self):
         try:
-            if os.path.isfile(self.model_path):
-                self.model = joblib.load(self.model_path)
+            path = Path(self.model_path)
+            if path.is_file():
+                logger.info(f"Loading CatBoost model from: {path}")
+                self.model = joblib.load(path)
+                # Validate model
+                if not hasattr(self.model, "predict"):
+                    raise ValueError("Invalid ML model loaded (missing predict method)")
                 self.fallback_mode = False
-                logger.info(f"✅ CatBoost model loaded successfully from: {self.model_path}")
-            else:
-                self.fallback_mode = True
-                logger.warning(
-                    f"⚠️ CatBoost model file not found at {self.model_path}. Falling back to rule-based detection."
-                )
-        except Exception as exc:
+                logger.info("CatBoost model loaded successfully")
+                return
+            # File missing
+            logger.warning(f"Model not found at {path}. Switching to fallback detection.")
             self.fallback_mode = True
-            logger.warning(f"⚠️ Failed to load CatBoost model: {exc}. Falling back to rule-based detection.")
+        except Exception as exc:
+            logger.warning(f"Model load failed: {exc}. Using fallback mode.")
             self.model = None
+            self.fallback_mode = True
 
     @staticmethod
     def _is_url(text: str) -> bool:
@@ -68,21 +72,12 @@ class CatBoostPhishingDetector:
         return len(re.findall(pattern, text))
 
     def extract_features(self, content: str) -> Dict[str, int]:
-        """
-        Extract 30 features from URL/text content to match the training dataset.
-        Returns a dictionary with feature names as keys and values as -1, 0, or 1.
-        
-        Features are heuristic approximations of the original dataset features.
-        """
         text = content.strip()
         lower = text.lower()
         length = len(text)
-        
-        # Helper function to convert boolean to -1/1
-        def bool_to_feature(condition):
-            return 1 if condition else -1
-        
-        # Extract features (approximations based on URL characteristics)
+
+        def bool_to_feature(c): return 1 if c else -1
+
         features = {
             'UsingIP': bool_to_feature(bool(re.search(r'https?://\d+\.\d+\.\d+\.\d+', lower))),
             'LongURL': 1 if length > 75 else (-1 if length > 54 else 0),
@@ -93,115 +88,79 @@ class CatBoostPhishingDetector:
             'SubDomains': 1 if text.count('.') > 3 else (0 if text.count('.') > 1 else -1),
             'HTTPS': bool_to_feature(lower.startswith('https://')),
             'DomainRegLen': 1 if 6 <= length <= 20 else -1,
-            'Favicon': -1,  # Cannot determine from text
+            'Favicon': -1,
             'NonStdPort': bool_to_feature(bool(re.search(r':\d{2,5}/', text))),
             'HTTPSDomainURL': bool_to_feature('https' in lower),
-            'RequestURL': -1,  # Cannot determine from text alone
-            'AnchorURL': 0,  # Neutral default
-            'LinksInScriptTags': 0,  # Cannot determine from text
-            'ServerFormHandler': -1,  # Cannot determine from text
+            'RequestURL': -1,
+            'AnchorURL': 0,
+            'LinksInScriptTags': 0,
+            'ServerFormHandler': -1,
             'InfoEmail': bool_to_feature(bool(re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', text))),
             'AbnormalURL': bool_to_feature(bool(re.search(r'[^a-zA-Z0-9./:?=&_-]', text))),
-            'WebsiteForwarding': 0,  # Cannot determine from text
-            'StatusBarCust': 1,  # Default assumption
-            'DisableRightClick': 1,  # Default assumption
-            'UsingPopupWindow': 1,  # Default assumption
-            'IframeRedirection': 1,  # Default assumption
-            'AgeofDomain': -1,  # Cannot determine from text
-            'DNSRecording': -1,  # Cannot determine from text
-            'WebsiteTraffic': 0,  # Cannot determine from text
-            'PageRank': -1,  # Cannot determine from text
-            'GoogleIndex': 1,  # Default assumption
-            'LinksPointingToPage': 0,  # Cannot determine from text
-            'StatsReport': 1  # Default assumption
+            'WebsiteForwarding': 0,
+            'StatusBarCust': 1,
+            'DisableRightClick': 1,
+            'UsingPopupWindow': 1,
+            'IframeRedirection': 1,
+            'AgeofDomain': -1,
+            'DNSRecording': -1,
+            'WebsiteTraffic': 0,
+            'PageRank': -1,
+            'GoogleIndex': 1,
+            'LinksPointingToPage': 0,
+            'StatsReport': 1
         }
-        
-        # Additional heuristics for suspicious patterns
-        if bool(re.search(r'\.(tk|ml|ga|cf|gq)(/|$)', lower)):
+
+        if re.search(r'\.(tk|ml|ga|cf|gq)(/|$)', lower):
             features['DomainRegLen'] = -1
             features['PageRank'] = -1
-            
+
         return features
 
-    def predict_proba(self, content: str) -> Optional[float]:
-        """
-        Returns probability of phishing (higher value = more likely phishing).
-        Uses trained CatBoost model if available, otherwise falls back to rule-based detection.
-        
-        Returns:
-            float: Probability score between 0.0 and 1.0
-        """
+    def predict_proba(self, content: str) -> float:
+        """Returns probability of phishing (0.0–1.0)."""
         if self.model is None or self.fallback_mode:
-            # Fallback to rule-based detection
             return self._rule_based_detection(content)
-            
+
         try:
-            # Extract features
             feats = self.extract_features(content)
-            
-            # Create feature vector in the correct order
-            X = [[feats[feature_name] for feature_name in self.feature_names]]
-            
-            # Get prediction from CatBoost model
+            X = [[feats[f] for f in self.feature_names]]
+
             if hasattr(self.model, "predict_proba"):
                 proba = self.model.predict_proba(X)[0]
-                # CatBoost returns probabilities for each class
-                # In the training data: -1 = legitimate (benign), 1 = phishing
-                # proba[0] = probability of class -1 (legitimate)
-                # proba[1] = probability of class 1 (phishing)
-                if len(proba) == 2:
-                    # Return probability of phishing (class 1)
-                    phishing_prob = float(proba[1])
-                else:
-                    phishing_prob = float(proba[0])
-                
-                logger.debug(f"CatBoost prediction: {phishing_prob:.4f} for content: {content[:50]}...")
-                return phishing_prob
-            else:
-                # Fallback to binary prediction
-                pred = self.model.predict(X)[0]
-                # Convert -1/1 to 0.0/1.0
-                return 1.0 if pred == 1 else 0.0
-                
+                return float(proba[1]) if len(proba) == 2 else float(proba[0])
+
+            pred = self.model.predict(X)[0]
+            return 1.0 if pred == 1 else 0.0
+
         except Exception as exc:
-            logger.warning(f"ML prediction failed: {exc}. Falling back to rule-based detection.")
+            logger.warning(f"Prediction failed: {exc}. Using fallback mode.")
             return self._rule_based_detection(content)
-            
+
     def _rule_based_detection(self, content: str) -> float:
-        """
-        Simple rule-based detection as fallback when ML model is unavailable.
-        Returns a probability score between 0.0 and 1.0.
-        """
         text = content.lower().strip()
         score = 0.0
-        
-        # Check for suspicious patterns
+
         patterns = [
-            r'https?://[^\s]*\.(tk|ml|ga|cf|gq)(/|$)',  # Suspicious TLDs
-            r'https?://[^\s]*\.(bit\.ly|tinyurl|goo\.gl|t\.co)',  # URL shorteners
-            r'https?://\d+\.\d+\.\d+\.\d+',  # IP addresses in URLs
-            r'password|login|signin|bank|account|update|verify|confirm',  # Suspicious keywords
-            r'urgent|alert|warning|attention|important',  # Urgency keywords
-            r'bitcoin|crypto|wallet|transfer|money',  # Financial keywords
+            r'https?://[^\s]*\.(tk|ml|ga|cf|gq)(/|$)',
+            r'https?://[^\s]*\.(bit\.ly|tinyurl|goo\.gl|t\.co)',
+            r'https?://\d+\.\d+\.\d+\.\d+',
+            r'password|login|signin|bank|account|update|verify|confirm',
+            r'urgent|alert|warning|attention|important',
+            r'bitcoin|crypto|wallet|transfer|money',
         ]
-        
-        for pattern in patterns:
-            if re.search(pattern, text):
-                score += 0.2  # Increase score for each matched pattern
-        
-        # Cap the score at 1.0
+
+        for p in patterns:
+            if re.search(p, text):
+                score += 0.2
+
         return min(score, 1.0)
 
-
-# Singleton-like accessor
+# Singleton
 _detector: Optional[CatBoostPhishingDetector] = None
 
-
-def get_detector() -> CatBoostPhishingDetector:
+def get_detector():
     global _detector
     if _detector is None:
         _detector = CatBoostPhishingDetector()
     return _detector
-
-
-

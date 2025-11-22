@@ -23,13 +23,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 import base64
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Import security_monitor with error handling
 try:
-    try:
-        from .security_monitor import security_monitor, SecurityWarning
-    except ImportError:
-        from security_monitor import security_monitor, SecurityWarning
+    from server.security_monitor import security_monitor, SecurityWarning
 except Exception as e:
     print(f"⚠️  Warning: Could not import security_monitor: {e}")
     # Create a minimal fallback
@@ -49,8 +47,13 @@ except Exception as e:
 
 # Load environment variables
 # Try to load from .docker.env in parent directory, then .env in current directory
-load_dotenv(dotenv_path="../.docker.env")
-load_dotenv()  # This will override with .env if it exists in server directory
+try:
+    docker_env_path = Path(__file__).resolve().parent.parent / ".docker.env"
+    if docker_env_path.exists():
+        load_dotenv(dotenv_path=str(docker_env_path))
+except Exception:
+    pass
+load_dotenv()  # This will override with .env if it exists in current directory
 
 app = FastAPI(title="Secure Chat App", version="2.0.0")
 
@@ -681,26 +684,21 @@ app.add_middleware(
 )
 
 # Mount static files
-# Try to find client directory relative to server directory or current working directory
+# Render-safe absolute path → project_root/client/
 try:
-    import pathlib
-    client_dir = pathlib.Path(__file__).parent.parent / "client"
-    if not client_dir.exists():
-        # Try current working directory (for Render deployment)
-        client_dir = pathlib.Path.cwd() / "client"
-    if not client_dir.exists():
-        # Try from server directory
-        client_dir = pathlib.Path(__file__).parent / ".." / "client"
-        client_dir = client_dir.resolve()
-    if client_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(client_dir)), name="static")
-        print(f"✅ Static files mounted from: {client_dir}")
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    CLIENT_DIR = BASE_DIR / "client"
+    
+    # Ensure absolute path
+    CLIENT_DIR = CLIENT_DIR.resolve()
+    
+    if CLIENT_DIR.exists() and CLIENT_DIR.is_dir():
+        app.mount("/static", StaticFiles(directory=str(CLIENT_DIR)), name="static")
+        print(f"Static files mounted from: {CLIENT_DIR}")
     else:
-        print("⚠️  Warning: Client directory not found. Static files will not be served.")
-        print(f"   Searched in: {pathlib.Path(__file__).parent.parent / 'client'}")
-        print(f"   Searched in: {pathlib.Path.cwd() / 'client'}")
+        print(f"Warning: Client directory not found at {CLIENT_DIR}. Static files will not be served.")
 except Exception as e:
-    print(f"⚠️  Warning: Could not mount static files: {e}")
+    print(f"Warning: Could not mount static files: {e}")
 
 # Root endpoint
 @app.get("/")
@@ -715,7 +713,16 @@ async def favicon():
 # QR Validation page
 @app.get("/qr-validate")
 async def qr_validate_page():
-    return FileResponse("../client/qr_validate.html")
+    from pathlib import Path
+    client_dir = Path(__file__).resolve().parent.parent / "client"
+    qr_validate_path = client_dir / "qr_validate.html"
+    if qr_validate_path.exists():
+        return FileResponse(str(qr_validate_path))
+    # Fallback to current working directory
+    fallback_path = Path.cwd() / "client" / "qr_validate.html"
+    if fallback_path.exists():
+        return FileResponse(str(fallback_path))
+    raise HTTPException(status_code=404, detail="QR validate page not found")
 
 # Signup endpoint with enhanced bcrypt security
 @app.post("/signup")
