@@ -7,5 +7,5 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
 # Start uvicorn server
 # Render sets PORT environment variable automatically
-uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+uvicorn server.main:app --host 0.0.0.0 --port ${PORT:-8000}
 

@@ -26,7 +26,10 @@ from dotenv import load_dotenv
 
 # Import security_monitor with error handling
 try:
-    from security_monitor import security_monitor, SecurityWarning
+    try:
+        from .security_monitor import security_monitor, SecurityWarning
+    except ImportError:
+        from security_monitor import security_monitor, SecurityWarning
 except Exception as e:
     print(f"⚠️  Warning: Could not import security_monitor: {e}")
     # Create a minimal fallback

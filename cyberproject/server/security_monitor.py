@@ -36,7 +36,10 @@ class SecurityMonitor:
         # ML phishing detection configuration
         self.enable_ml_detection = os.getenv("ENABLE_ML_PHISHING", "true").lower() == "true"
         try:
-            from ml_detector import get_detector
+            try:
+                from .ml_detector import get_detector
+            except ImportError:
+                from ml_detector import get_detector
             self.ml_detector = get_detector() if self.enable_ml_detection else None
             logger.info("ML detector initialized successfully in fallback mode")
         except Exception as e:

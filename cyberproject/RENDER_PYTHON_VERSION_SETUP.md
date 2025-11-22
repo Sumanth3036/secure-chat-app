@@ -26,3 +26,6 @@ If the above doesn't work, you may need to:
 
 Render installs Python BEFORE reading environment variables from `render.yaml`, so the `PYTHON_VERSION` in `envVars` doesn't take effect for the initial Python installation. It must be set in the dashboard or during service creation.
 
+
+
+

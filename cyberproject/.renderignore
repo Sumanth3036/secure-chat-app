@@ -12,7 +12,6 @@ venv/
 .gitignore
 *.md
 mlmodel/catboost_info/
-*.pkl
 .DS_Store
 node_modules/
 

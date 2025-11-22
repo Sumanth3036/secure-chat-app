@@ -22,4 +22,5 @@ EXPOSE 8000
 
 # Run the app. Use 0.0.0.0 to make it accessible from the host.
 # The entry point is the 'app' object in 'server/main.py'
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use PORT environment variable if provided, otherwise default to 8000
+CMD uvicorn server.main:app --host 0.0.0.0 --port ${PORT:-8000}
