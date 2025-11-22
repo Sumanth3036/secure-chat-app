@@ -2,7 +2,7 @@ services:
   - type: web
     name: secure-chat-app
     env: python
-    rootDirectory: cyberproject/cyberproject
+    rootDirectory: .
     autoDeploy: true
     plan: free
     healthCheckPath: /
